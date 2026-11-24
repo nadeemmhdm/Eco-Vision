@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -553,7 +552,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                 leadingIcon = { Icon(Icons.Default.Badge, null, tint = EcoEmerald400) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                keyboardOptions = KeyboardOptions(imeAction = FocusDirection.Down.let { ImeAction.Next })
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
