@@ -268,27 +268,28 @@ fun ProfileScreen(
                             )
 
                             // Update profile in Supabase
-                            val updated = SupabaseClient.createProfile(
-                                updatedProfile,
-                                agentDetails = if (curr.role == "agent") {
+                            val ok = SupabaseClient.updateProfile(updatedProfile)
+                            if (curr.role == "agent") {
+                                SupabaseClient.updateAgentDetails(
                                     AgentDetails(
                                         agentId = curr.id,
                                         vehicleNumber = vehicleNumber.ifBlank { "KL-07-AB-1234" },
                                         assignedZones = listOf(pincode),
                                         allowedDays = listOf("Mon", "Wed", "Fri")
                                     )
-                                } else null,
-                                companyDetails = if (curr.role == "company") {
+                                )
+                            } else if (curr.role == "company") {
+                                SupabaseClient.updateCompanyDetails(
                                     CompanyDetails(
                                         companyId = curr.id,
                                         companyName = companyName.ifBlank { curr.fullName },
                                         gstNumber = gstNumber.ifBlank { "32AABCG1234F1Z5" }
                                     )
-                                } else null
-                            )
+                                )
+                            }
 
-                            if (updated != null) {
-                                SessionManager.setProfile(updated, persist = true)
+                            if (ok) {
+                                SessionManager.setProfile(updatedProfile, persist = true)
                                 statusMessage = "KYC documents submitted successfully! Admin will verify."
                             } else {
                                 statusMessage = "Could not submit KYC. Please try again."

@@ -127,6 +127,51 @@ object SupabaseClient {
         }
     }
 
+    suspend fun updateProfile(profile: Profile): Boolean {
+        return try {
+            httpClient.patch("$REST_URL/profiles") {
+                supabaseHeaders()
+                parameter("id", "eq.${profile.id}")
+                contentType(ContentType.Application.Json)
+                setBody(profile)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun updateAgentDetails(details: AgentDetails): Boolean {
+        return try {
+            httpClient.patch("$REST_URL/agent_details") {
+                supabaseHeaders()
+                parameter("agent_id", "eq.${details.agentId}")
+                contentType(ContentType.Application.Json)
+                setBody(details)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun updateCompanyDetails(details: CompanyDetails): Boolean {
+        return try {
+            httpClient.patch("$REST_URL/company_details") {
+                supabaseHeaders()
+                parameter("company_id", "eq.${details.companyId}")
+                contentType(ContentType.Application.Json)
+                setBody(details)
+            }
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     suspend fun getAgentDetails(agentId: String): AgentDetails? {
         return try {
             val list = httpClient.get("$REST_URL/agent_details") {
