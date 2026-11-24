@@ -1,0 +1,75 @@
+name: Build EcoVision Android App
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Assemble APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecovision-app-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/debug/*.apk
+          tag_name: ${{ github.ref_name || 'v1.0.0' }}
+          name: EcoVision Release ${{ github.ref_name || 'v1.0.0' }}
+          draft: false
+          prerelease: false
+          body: |
+            ### 🍃 EcoVision v1.0.0 Release
+
+            AI-Powered Smart Waste Management & Circular Economy Platform for Android.
+
+            #### 🚀 Highlights:
+            - **Adaptive Auth & KYC**: Mobile OTP / Username + 2FA (TOTP & Email OTP) + Aadhaar / GST document onboarding.
+            - **AI Waste Scanner**: Instant YOLOv8-simulated material identification, recyclable grading, confidence scoring, and DIY upcycling recommendations.
+            - **Weight-Based Pricing Engine**: Dynamic per-kg pricing slabs with physical certified scale disclaimer.
+            - **Raw Waste Virtual Bin**: Minimum pickup threshold enforcement (₹100 / 3kg) locking collection request until met.
+            - **Doorstep Security**: Agent vehicle photo and license plate verification before waste handoff.
+            - **Godown Inventory Gate**: Strict acceptance protocol before waste is pooled for B2B buyer companies.
+            - **B2B Bulk Procurement**: Multi-household pooled waste purchasing with automated manifests and ESG carbon offset calculations.
+            - **12-Hour Exclusive Rating Window**: Post-pickup agent reviews & dispute reporting.
+            - **Leaf Coin Rewards**: Weight-based gamification with UPI cash and eco-voucher redemption.
+            - **Admin Governance**: Maintenance mode switchboard, KYC desk, and dynamic pricing engine.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
