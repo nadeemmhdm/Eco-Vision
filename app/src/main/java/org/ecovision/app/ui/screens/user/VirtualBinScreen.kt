@@ -251,7 +251,7 @@ fun VirtualBinScreen(
             AlertDialog(
                 onDismissRequest = { showConfirmDialog = false },
                 containerColor = Slate850,
-                titleColor = Color.White,
+                titleContentColor = Color.White,
                 textContentColor = Slate300,
                 title = { Text("Confirm Pickup Request") },
                 text = {

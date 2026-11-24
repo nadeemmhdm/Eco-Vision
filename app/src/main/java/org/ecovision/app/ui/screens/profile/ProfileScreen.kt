@@ -102,7 +102,7 @@ fun ProfileScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = CardBorderBright)
+                HorizontalDivider(color = CardBorderBright)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(text = "Default Address: ${profile?.defaultAddress ?: "Kakkanad, Kochi"}", color = Slate300, fontSize = 12.sp)

@@ -181,7 +181,7 @@ fun AgentDashboardScreen() {
                             } else {
                                 EcoButton(
                                     text = "Spot Scale Weigh & Pay",
-                                    icon = Icons.Default.Scale,
+                                    icon = Icons.Default.Balance,
                                     modifier = Modifier.weight(1f),
                                     onClick = {
                                         selectedPickupForWeighing = req
@@ -334,7 +334,7 @@ fun AgentDashboardScreen() {
         AlertDialog(
             onDismissRequest = { selectedPickupForWeighing = null },
             containerColor = Slate850,
-            titleColor = Color.White,
+            titleContentColor = Color.White,
             textContentColor = Slate300,
             title = { Text("Scale Weighing & Cash Settlement") },
             text = {

@@ -234,7 +234,7 @@ fun AiScanScreen(
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))
-                    Divider(color = CardBorderBright)
+                    HorizontalDivider(color = CardBorderBright)
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Weight Quantity Input

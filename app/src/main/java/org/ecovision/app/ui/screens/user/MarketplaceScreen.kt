@@ -176,7 +176,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
             AlertDialog(
                 onDismissRequest = { selectedProductForBargain = null },
                 containerColor = Slate850,
-                titleColor = Color.White,
+                titleContentColor = Color.White,
                 textContentColor = Slate300,
                 title = { Text("💬 Propose Bargain Price") },
                 text = {
@@ -243,7 +243,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
             AlertDialog(
                 onDismissRequest = { showCreateDialog = false },
                 containerColor = Slate850,
-                titleColor = Color.White,
+                titleContentColor = Color.White,
                 textContentColor = Slate300,
                 title = { Text("List Upcycled Craft") },
                 text = {

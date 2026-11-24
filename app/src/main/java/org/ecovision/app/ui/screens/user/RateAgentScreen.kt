@@ -190,7 +190,7 @@ fun RateAgentScreen(
             AlertDialog(
                 onDismissRequest = { showReportDialog = false },
                 containerColor = Slate850,
-                titleColor = Color.White,
+                titleContentColor = Color.White,
                 textContentColor = Slate300,
                 title = { Text("🚩 Report Pickup Agent") },
                 text = {
