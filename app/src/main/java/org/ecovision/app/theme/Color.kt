@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 val EcoEmerald500 = Color(0xFF10B981)
 val EcoEmerald600 = Color(0xFF059669)
 val EcoEmerald400 = Color(0xFF34D399)
+val EcoEmerald300 = Color(0xFF6EE7B7)
 val EcoEmerald100 = Color(0xFFD1FAE5)
 
 val LeafCoinGold = Color(0xFFF59E0B)

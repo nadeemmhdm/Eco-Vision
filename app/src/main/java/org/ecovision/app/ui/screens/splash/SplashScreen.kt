@@ -138,7 +138,7 @@ fun SplashScreen(
             Text(
                 text = "Smart Waste • Dynamic Pricing • Verified Loop",
                 style = MaterialTheme.typography.bodyMedium,
-                color = EcoEmerald300,
+                color = EcoEmerald400,
                 fontWeight = FontWeight.Medium
             )
 
