@@ -1,6 +1,6 @@
 # 🍃 EcoVision — AI-Powered Smart Waste Management & Circular Economy Platform
 
-[![Build EcoVision Android App](https://github.com/nadeem/EcoVision-Android/actions/workflows/android-build.yml/badge.svg)](https://github.com/nadeem/EcoVision-Android/actions)
+[![Build EcoVision Android App](https://github.com/nadeemmhdm/Eco-Vision/actions/workflows/android-build.yml/badge.svg)](https://github.com/nadeemmhdm/Eco-Vision/actions)
 [![Platform](https://img.shields.io/badge/Platform-Android-3DDC84.svg?logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
