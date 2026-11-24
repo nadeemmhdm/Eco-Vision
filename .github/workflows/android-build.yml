@@ -38,10 +38,25 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
+        shell: bash
         run: |
-          ./gradlew assembleDebug --stacktrace --continue 2>&1 | tee gradle_output.log || (echo "=== COMPILATION ERRORS ===" && grep -E "e: |FAILED" -C 2 gradle_output.log && exit 1)
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace --continue 2>&1 | tee gradle_output.log
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
+
+      - name: Post Build Failure Summary
+        if: failure()
+        run: |
+          echo "## ❌ Gradle Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "### Compilation & Build Error Details:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "e: |FAILED|Compilation error|Caused by:" -C 4 gradle_output.log | head -n 120 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "### Last 60 Lines of Gradle Output:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 60 gradle_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Build Log
         if: always()
@@ -51,13 +66,14 @@ jobs:
           path: gradle_output.log
 
       - name: Upload Debug APK Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ecovision-app-debug
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        if: success() && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
