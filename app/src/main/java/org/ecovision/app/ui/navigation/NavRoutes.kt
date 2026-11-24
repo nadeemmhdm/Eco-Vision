@@ -1,6 +1,7 @@
 package org.ecovision.app.ui.navigation
 
 sealed class Screen(val route: String, val title: String) {
+    data object Splash : Screen("splash", "Welcome")
     data object Auth : Screen("auth", "Sign In / Register")
     data object Maintenance : Screen("maintenance", "System Maintenance")
 

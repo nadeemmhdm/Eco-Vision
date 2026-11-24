@@ -27,6 +27,7 @@ import org.ecovision.app.ui.screens.auth.AuthScreen
 import org.ecovision.app.ui.screens.company.CompanyDashboardScreen
 import org.ecovision.app.ui.screens.maintenance.MaintenanceScreen
 import org.ecovision.app.ui.screens.profile.ProfileScreen
+import org.ecovision.app.ui.screens.splash.SplashScreen
 import org.ecovision.app.ui.screens.user.*
 
 class MainActivity : ComponentActivity() {
@@ -47,10 +48,6 @@ fun MainAppHost() {
     val isMaintenanceBlocked by SessionManager.maintenanceBlocked.collectAsState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        SessionManager.init()
-    }
-
     if (isMaintenanceBlocked && profile?.role != "admin") {
         MaintenanceScreen(
             onRecovery = {
@@ -60,30 +57,29 @@ fun MainAppHost() {
         return
     }
 
-    if (profile == null) {
-        AuthScreen(
-            onAuthSuccess = {
-                navController.navigate(Screen.UserHome.route) {
-                    popUpTo(0)
-                }
-            }
-        )
-        return
-    }
-
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
+
+    val isTopLevelScreen = currentRoute in listOf(
+        Screen.UserHome.route,
+        Screen.AgentDashboard.route,
+        Screen.CompanyDashboard.route,
+        Screen.AdminDashboard.route
+    )
+
+    val isNavBarVisible = currentRoute in listOf(
+        Screen.UserHome.route,
+        Screen.AgentDashboard.route,
+        Screen.CompanyDashboard.route,
+        Screen.AdminDashboard.route,
+        Screen.Marketplace.route,
+        Screen.VirtualBin.route
+    )
 
     Scaffold(
         containerColor = Slate900,
         topBar = {
-            if (currentRoute in listOf(
-                    Screen.UserHome.route,
-                    Screen.AgentDashboard.route,
-                    Screen.CompanyDashboard.route,
-                    Screen.AdminDashboard.route
-                )
-            ) {
+            if (isTopLevelScreen) {
                 EcoHeader(
                     title = "EcoVision",
                     subtitle = when (profile?.role) {
@@ -98,15 +94,7 @@ fun MainAppHost() {
             }
         },
         bottomBar = {
-            if (currentRoute in listOf(
-                    Screen.UserHome.route,
-                    Screen.AgentDashboard.route,
-                    Screen.CompanyDashboard.route,
-                    Screen.AdminDashboard.route,
-                    Screen.Marketplace.route,
-                    Screen.VirtualBin.route
-                )
-            ) {
+            if (isNavBarVisible) {
                 NavigationBar(
                     containerColor = Slate950,
                     contentColor = Color.White,
@@ -166,14 +154,48 @@ fun MainAppHost() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = when (profile?.role) {
-                "agent" -> Screen.AgentDashboard.route
-                "company" -> Screen.CompanyDashboard.route
-                "admin" -> Screen.AdminDashboard.route
-                else -> Screen.UserHome.route
-            },
+            startDestination = Screen.Splash.route,
             modifier = Modifier.padding(paddingValues)
         ) {
+            // Splash Screen
+            composable(Screen.Splash.route) {
+                SplashScreen(
+                    onNavigateToAuth = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToHome = { userProfile ->
+                        val targetRoute = when (userProfile.role) {
+                            "agent" -> Screen.AgentDashboard.route
+                            "company" -> Screen.CompanyDashboard.route
+                            "admin" -> Screen.AdminDashboard.route
+                            else -> Screen.UserHome.route
+                        }
+                        navController.navigate(targetRoute) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // Auth Screen
+            composable(Screen.Auth.route) {
+                AuthScreen(
+                    onAuthSuccess = { authenticatedProfile ->
+                        val targetRoute = when (authenticatedProfile.role) {
+                            "agent" -> Screen.AgentDashboard.route
+                            "company" -> Screen.CompanyDashboard.route
+                            "admin" -> Screen.AdminDashboard.route
+                            else -> Screen.UserHome.route
+                        }
+                        navController.navigate(targetRoute) {
+                            popUpTo(Screen.Auth.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             // User Routes
             composable(Screen.UserHome.route) {
                 UserHomeScreen(
@@ -235,7 +257,11 @@ fun MainAppHost() {
             // Profile
             composable(Screen.Profile.route) {
                 ProfileScreen(
-                    onLogout = { navController.navigate(Screen.Auth.route) },
+                    onLogout = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
                     onBack = { navController.popBackStack() }
                 )
             }

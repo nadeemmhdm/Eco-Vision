@@ -9,6 +9,19 @@
 > **"Don't just classify waste. Price it and move it."**  
 > EcoVision connects households, doorstep pickup agents, recycling companies, and platform governance into one unified, verified loop.
 
+### 📥 Download Android App (APK)
+[![Download APK](https://img.shields.io/badge/Download-EcoVision%20APK-10B981?style=for-the-badge&logo=android&logoColor=white)](https://github.com/nadeemmhdm/Eco-Vision/releases)
+- **Direct APK Download:** [app-debug.apk (v1.0.1)](https://github.com/nadeemmhdm/Eco-Vision/releases/download/v1.0.1/app-debug.apk)
+- **All Releases:** [GitHub Releases Page](https://github.com/nadeemmhdm/Eco-Vision/releases)
+
+#### 🧪 Fast 1-Tap Test Accounts:
+| Role | Username | Password | Key Features to Test |
+| :--- | :--- | :--- | :--- |
+| **🛡️ Admin** | `admin` | `ecopass123` | Maintenance Mode toggle, KYC verification desk, Dynamic pricing slabs |
+| **🏠 User** | `adhil` | `userpass123` | AI Waste Scanner, Upcycled P2P store, Virtual bin (₹100 threshold), Leaf Coins |
+| **🚚 Agent** | `rahul_agent` | `agentpass123` | Assigned zone pickups, doorstep scale spot weighing, Godown Stock acceptance gate |
+| **🏭 Company** | `greenloop_co` | `companypass123` | B2B godown stock feed, pooled multi-household lots, bulk purchase manifest & ESG |
+
 ---
 
 ## 📱 Visual Workflow & System Architecture

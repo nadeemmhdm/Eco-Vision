@@ -1,10 +1,21 @@
 package org.ecovision.app.data
 
+import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.ecovision.app.EcoVisionApplication
 
 object SessionManager {
+
+    private const val PREFS_NAME = "ecovision_session_prefs"
+    private const val KEY_USER_MOBILE = "saved_user_mobile"
+    private const val KEY_USER_ID = "saved_user_id"
+
+    private val prefs: SharedPreferences by lazy {
+        EcoVisionApplication.instance.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
 
     private val _currentProfile = MutableStateFlow<Profile?>(null)
     val currentProfile: StateFlow<Profile?> = _currentProfile.asStateFlow()
@@ -21,33 +32,65 @@ object SessionManager {
     private val _maintenanceBlocked = MutableStateFlow<Boolean>(false)
     val maintenanceBlocked: StateFlow<Boolean> = _maintenanceBlocked.asStateFlow()
 
+    private val _isInitialized = MutableStateFlow<Boolean>(false)
+    val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
+
     suspend fun init() {
         val settings = SupabaseClient.getPlatformSettings() ?: PlatformSettings()
         _platformSettings.value = settings
-        checkMaintenance()
 
-        // Set default demo user initially if null
-        if (_currentProfile.value == null) {
-            val user = SupabaseClient.findProfileByMobile("+919123456789")
+        // Check if there is a saved user session
+        val savedMobile = prefs.getString(KEY_USER_MOBILE, null)
+
+        if (savedMobile != null) {
+            val user = SupabaseClient.findProfileByMobile(savedMobile)
             if (user != null) {
-                setProfile(user)
+                setProfile(user, persist = false)
+            } else {
+                clearSession()
             }
         }
+        checkMaintenance()
+        _isInitialized.value = true
     }
 
-    suspend fun setProfile(profile: Profile?) {
+    suspend fun setProfile(profile: Profile?, persist: Boolean = true) {
         _currentProfile.value = profile
-        if (profile?.role == "agent") {
-            _agentDetails.value = SupabaseClient.getAgentDetails(profile.id)
+        if (profile != null) {
+            if (persist) {
+                prefs.edit()
+                    .putString(KEY_USER_MOBILE, profile.mobile)
+                    .putString(KEY_USER_ID, profile.id)
+                    .apply()
+            }
+            if (profile.role == "agent") {
+                _agentDetails.value = SupabaseClient.getAgentDetails(profile.id)
+            } else {
+                _agentDetails.value = null
+            }
+            if (profile.role == "company") {
+                _companyDetails.value = SupabaseClient.getCompanyDetails(profile.id)
+            } else {
+                _companyDetails.value = null
+            }
         } else {
+            if (persist) {
+                clearSession()
+            }
             _agentDetails.value = null
-        }
-        if (profile?.role == "company") {
-            _companyDetails.value = SupabaseClient.getCompanyDetails(profile.id)
-        } else {
             _companyDetails.value = null
         }
         checkMaintenance()
+    }
+
+    fun clearSession() {
+        prefs.edit()
+            .remove(KEY_USER_MOBILE)
+            .remove(KEY_USER_ID)
+            .apply()
+        _currentProfile.value = null
+        _agentDetails.value = null
+        _companyDetails.value = null
     }
 
     fun checkMaintenance() {
@@ -83,7 +126,7 @@ object SessionManager {
         }
         val found = SupabaseClient.findProfileByMobile(mobile)
         if (found != null) {
-            setProfile(found)
+            setProfile(found, persist = true)
         }
     }
 
@@ -91,13 +134,11 @@ object SessionManager {
         val curr = _currentProfile.value ?: return
         val fresh = SupabaseClient.findProfileByMobile(curr.mobile)
         if (fresh != null) {
-            setProfile(fresh)
+            setProfile(fresh, persist = true)
         }
     }
 
     fun logout() {
-        _currentProfile.value = null
-        _agentDetails.value = null
-        _companyDetails.value = null
+        clearSession()
     }
 }

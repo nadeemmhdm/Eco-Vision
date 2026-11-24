@@ -1,5 +1,6 @@
 package org.ecovision.app.ui.screens.profile
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,7 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import org.ecovision.app.data.AgentDetails
+import org.ecovision.app.data.CompanyDetails
 import org.ecovision.app.data.SessionManager
+import org.ecovision.app.data.SupabaseClient
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoButton
 import org.ecovision.app.ui.components.GlassCard
@@ -30,9 +34,22 @@ fun ProfileScreen(
     onBack: () -> Unit
 ) {
     val profile by SessionManager.currentProfile.collectAsState()
+    val agentDetails by SessionManager.agentDetails.collectAsState()
+    val companyDetails by SessionManager.companyDetails.collectAsState()
+
     var totp2FaEnabled by remember { mutableStateOf(profile?.totpEnabled ?: false) }
     var email2FaEnabled by remember { mutableStateOf(profile?.emailOtpEnabled ?: false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var isSubmittingKyc by remember { mutableStateOf(false) }
+
+    // KYC fields
+    var idDocNumber by remember { mutableStateOf(profile?.kycDocumentNumber ?: "") }
+    var vehicleNumber by remember { mutableStateOf(agentDetails?.vehicleNumber ?: "") }
+    var gstNumber by remember { mutableStateOf(companyDetails?.gstNumber ?: "") }
+    var companyName by remember { mutableStateOf(companyDetails?.companyName ?: profile?.fullName ?: "") }
+    var address by remember { mutableStateOf(profile?.defaultAddress ?: "") }
+    var pincode by remember { mutableStateOf(profile?.pincode ?: "682001") }
+
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -61,6 +78,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -95,7 +113,7 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         StatusBadge(
-                            text = "KYC: ${profile?.kycStatus?.uppercase() ?: "VERIFIED"}",
+                            text = "KYC: ${profile?.kycStatus?.uppercase() ?: "PENDING"}",
                             color = if (profile?.kycStatus == "verified") EcoEmerald400 else LeafCoinGold
                         )
                     }
@@ -105,8 +123,180 @@ fun ProfileScreen(
                 HorizontalDivider(color = CardBorderBright)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(text = "Default Address: ${profile?.defaultAddress ?: "Kakkanad, Kochi"}", color = Slate300, fontSize = 12.sp)
+                Text(text = "Default Address: ${profile?.defaultAddress ?: "Not set"}", color = Slate300, fontSize = 12.sp)
                 Text(text = "Active Role: ${profile?.role?.uppercase()}", color = TechBlue, fontSize = 12.sp)
+                Text(text = "Leaf Coins Balance: 🍃 ${profile?.leafCoins ?: 50} Coins", color = LeafCoinGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ==========================================
+            // KYC VERIFICATION DESK (SUBMITTED POST-REGISTRATION)
+            // ==========================================
+            GlassCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.VerifiedUser,
+                        contentDescription = null,
+                        tint = if (profile?.kycStatus == "verified") EcoEmerald400 else LeafCoinGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "KYC & Identity Verification",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (profile?.kycStatus == "verified")
+                        "Your identity and credentials are fully verified by EcoVision governance."
+                    else
+                        "Complete your KYC verification below to unlock doorstep pickups and transactions.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Slate400,
+                    fontSize = 11.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Default Address & Pincode
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Default Address") },
+                    leadingIcon = { Icon(Icons.Default.Home, null, tint = EcoEmerald400) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = pincode,
+                    onValueChange = { pincode = it },
+                    label = { Text("Service Zone / Pincode") },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = EcoEmerald400) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                when (profile?.role) {
+                    "agent" -> {
+                        OutlinedTextField(
+                            value = idDocNumber,
+                            onValueChange = { idDocNumber = it },
+                            label = { Text("Driving License / Aadhaar Number *") },
+                            leadingIcon = { Icon(Icons.Default.Badge, null, tint = LeafCoinGold) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = vehicleNumber,
+                            onValueChange = { vehicleNumber = it.uppercase() },
+                            label = { Text("Vehicle Number (e.g. KL-07-AB-1234) *") },
+                            leadingIcon = { Icon(Icons.Default.LocalShipping, null, tint = LeafCoinGold) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            color = Slate800,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CameraAlt, null, tint = EcoEmerald400, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Vehicle Photo: Matched with license plate by Admin desk",
+                                    fontSize = 11.sp,
+                                    color = Slate300
+                                )
+                            }
+                        }
+                    }
+                    "company" -> {
+                        OutlinedTextField(
+                            value = companyName,
+                            onValueChange = { companyName = it },
+                            label = { Text("Registered Business / Entity Name *") },
+                            leadingIcon = { Icon(Icons.Default.Business, null, tint = LeafCoinGold) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = gstNumber,
+                            onValueChange = { gstNumber = it.uppercase() },
+                            label = { Text("GSTIN (15 Digits) / Business ID *") },
+                            leadingIcon = { Icon(Icons.Default.Receipt, null, tint = LeafCoinGold) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                    else -> {
+                        OutlinedTextField(
+                            value = idDocNumber,
+                            onValueChange = { idDocNumber = it },
+                            label = { Text("Aadhaar Number / Voter ID (12 Digits) *") },
+                            leadingIcon = { Icon(Icons.Default.Fingerprint, null, tint = LeafCoinGold) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                EcoButton(
+                    text = if (isSubmittingKyc) "Submitting..." else if (profile?.kycStatus == "verified") "Update KYC Details" else "Submit KYC for Verification",
+                    enabled = !isSubmittingKyc && idDocNumber.isNotBlank() || gstNumber.isNotBlank() || vehicleNumber.isNotBlank(),
+                    onClick = {
+                        scope.launch {
+                            isSubmittingKyc = true
+                            val curr = profile ?: return@launch
+                            val updatedProfile = curr.copy(
+                                defaultAddress = address,
+                                pincode = pincode,
+                                kycDocumentNumber = if (curr.role == "company") gstNumber else idDocNumber,
+                                kycDocumentType = if (curr.role == "company") "gst" else "aadhaar",
+                                kycStatus = "pending"
+                            )
+
+                            // Update profile in Supabase
+                            val updated = SupabaseClient.createProfile(
+                                updatedProfile,
+                                agentDetails = if (curr.role == "agent") {
+                                    AgentDetails(
+                                        agentId = curr.id,
+                                        vehicleNumber = vehicleNumber.ifBlank { "KL-07-AB-1234" },
+                                        assignedZones = listOf(pincode),
+                                        allowedDays = listOf("Mon", "Wed", "Fri")
+                                    )
+                                } else null,
+                                companyDetails = if (curr.role == "company") {
+                                    CompanyDetails(
+                                        companyId = curr.id,
+                                        companyName = companyName.ifBlank { curr.fullName },
+                                        gstNumber = gstNumber.ifBlank { "32AABCG1234F1Z5" }
+                                    )
+                                } else null
+                            )
+
+                            if (updated != null) {
+                                SessionManager.setProfile(updated, persist = true)
+                                statusMessage = "KYC documents submitted successfully! Admin will verify."
+                            } else {
+                                statusMessage = "Could not submit KYC. Please try again."
+                            }
+                            isSubmittingKyc = false
+                        }
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -186,9 +376,11 @@ fun ProfileScreen(
                 }
             }
 
-            if (statusMessage != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                StatusBadge(text = statusMessage!!, color = EcoEmerald400)
+            AnimatedVisibility(visible = statusMessage != null) {
+                if (statusMessage != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StatusBadge(text = statusMessage!!, color = EcoEmerald400)
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -202,6 +394,8 @@ fun ProfileScreen(
                     onLogout()
                 }
             )
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
