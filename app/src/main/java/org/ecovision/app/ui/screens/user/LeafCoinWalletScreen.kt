@@ -59,6 +59,7 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
     var isSubmittingCashRedeem by remember { mutableStateOf(false) }
 
     val userCoins = profile?.leafCoins ?: 0
+    val isOnline = remember(context) { DeviceLocationHelper.isNetworkAvailable(context) }
     val cashEquivalent = userCoins / 10.0
 
     fun refresh() {
@@ -168,11 +169,28 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Direct UPI Cash Payout Trigger
+                    // Direct UPI Cash Payout Trigger (Requires Internet)
+                    if (!isOnline) {
+                        Surface(
+                            color = CoralRed.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CoralRed.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Offline Mode: Connect to the internet to redeem vouchers or cash.",
+                                color = CoralRed,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     EcoButton(
-                        text = if (userCoins >= 1000) "Redeem Coins for Cash via UPI" else "Min ₹100 (1,000 Coins) to Redeem Cash",
+                        text = if (!isOnline) "Offline · Internet Required" else if (userCoins >= 1000) "Redeem Coins for Cash via UPI" else "Min ₹100 (1,000 Coins) to Redeem Cash",
                         icon = Icons.Default.CurrencyRupee,
-                        enabled = userCoins >= 1000,
+                        enabled = isOnline && userCoins >= 1000,
                         onClick = { showCashRedeemDialog = true }
                     )
                 }
@@ -214,7 +232,7 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(availableVouchers) { voucher ->
-                        val canAfford = userCoins >= voucher.coinCost
+                        val canAfford = isOnline && userCoins >= voucher.coinCost
                         FlippableVoucherCard(
                             voucher = voucher,
                             modifier = Modifier.width(280.dp),

@@ -67,20 +67,11 @@ fun UserHomeScreen(
     var detectedAddress by remember { mutableStateOf<String?>(profile?.defaultAddress) }
     var searchQuery by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var latestAnnouncement by remember { mutableStateOf<AdminNotification?>(null) }
 
     // Dialog States for Real Working Pickup Actions
-    var showChatDialog by remember { mutableStateOf(false) }
     var showVerifyVehicleDialog by remember { mutableStateOf(false) }
     var showSchedulePickupModal by remember { mutableStateOf(false) }
-    var chatMessages by remember {
-        mutableStateOf(
-            listOf(
-                "Eco Agent Rafiq" to "Hello! I am on my way with the electric collection van.",
-                "Eco Agent Rafiq" to "Please keep your dry sorted plastics and cardboard ready. ETA 12 mins."
-            )
-        )
-    }
-    var inputChatMessage by remember { mutableStateOf("") }
 
     // Location Permission Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -144,6 +135,8 @@ fun UserHomeScreen(
 
     LaunchedEffect(profile?.id) {
         loadUserData()
+        val alerts = SupabaseClient.getAdminNotifications(profile?.role ?: "user")
+        latestAnnouncement = alerts.firstOrNull()
     }
 
     LazyColumn(
@@ -380,6 +373,31 @@ fun UserHomeScreen(
                     }
                 }
 
+                // Admin Push Notification Announcement Banner
+                if (latestAnnouncement != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(latestAnnouncement!!.title, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(latestAnnouncement!!.message, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f), fontSize = 11.sp)
+                            }
+                            IconButton(onClick = { latestAnnouncement = null }, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Close, "Dismiss", tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
                 // Location / District Status Alerts
                 if (!isLocationEnabled) {
                     Surface(
@@ -568,9 +586,6 @@ fun UserHomeScreen(
                                 statusMessage = "Dialer initiated for Agent Rafiq (+919876543210)"
                             }
                         },
-                        onChatClick = {
-                            showChatDialog = true
-                        },
                         onVerifyClick = {
                             showVerifyVehicleDialog = true
                         },
@@ -604,9 +619,6 @@ fun UserHomeScreen(
                                 } catch (e: Exception) {
                                     statusMessage = "Calling Agent Rafiq (+919876543210)"
                                 }
-                            },
-                            onChatClick = {
-                                showChatDialog = true
                             },
                             onVerifyClick = {
                                 if (pickup.status == "completed") {
@@ -763,99 +775,6 @@ fun UserHomeScreen(
         }
 
         item { Spacer(modifier = Modifier.height(30.dp)) }
-    }
-
-    // =========================================================================
-    // MODAL 1: LIVE IN-APP CHAT WITH PICKUP AGENT (Matching Image 3)
-    // =========================================================================
-    if (showChatDialog) {
-        AlertDialog(
-            onDismissRequest = { showChatDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(EcoEmerald600),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text("Rafiq Khan (Pickup Agent)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Text("Green Van · KL-07-AB-1234 · Online", fontSize = 11.sp, color = EcoEmerald500)
-                    }
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 300.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        chatMessages.forEach { (sender, msg) ->
-                            val isAgent = sender.contains("Rafiq")
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentWidth(if (isAgent) Alignment.Start else Alignment.End)
-                            ) {
-                                Surface(
-                                    color = if (isAgent) MaterialTheme.colorScheme.surfaceVariant else EcoEmerald600,
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.widthIn(max = 240.dp)
-                                ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Text(text = msg, color = if (isAgent) MaterialTheme.colorScheme.onSurface else Color.White, fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = inputChatMessage,
-                            onValueChange = { inputChatMessage = it },
-                            placeholder = { Text("Message agent...", fontSize = 12.sp) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            singleLine = true
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = {
-                                if (inputChatMessage.isNotBlank()) {
-                                    chatMessages = chatMessages + ((profile?.fullName ?: "You") to inputChatMessage)
-                                    inputChatMessage = ""
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Send, "Send", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showChatDialog = false }) {
-                    Text("Close", color = MaterialTheme.colorScheme.primary)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        )
     }
 
     // =========================================================================

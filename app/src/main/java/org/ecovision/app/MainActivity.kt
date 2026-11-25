@@ -30,6 +30,7 @@ import org.ecovision.app.ui.screens.auth.AuthScreen
 import org.ecovision.app.ui.screens.company.CompanyDashboardScreen
 import org.ecovision.app.ui.screens.maintenance.MaintenanceScreen
 import org.ecovision.app.ui.screens.profile.ProfileScreen
+import org.ecovision.app.ui.screens.settings.*
 import org.ecovision.app.ui.screens.splash.SplashScreen
 import org.ecovision.app.ui.screens.user.*
 
@@ -74,7 +75,7 @@ fun MainAppHost() {
         Screen.Marketplace.route,
         Screen.VirtualBin.route,
         Screen.LeafCoins.route,
-        Screen.Profile.route,
+        Screen.Settings.route,
         "wallet",
         "leaf_coins"
     )
@@ -297,6 +298,29 @@ fun MainAppHost() {
                     }
                 }
                 AdminDashboardScreen()
+            }
+
+            // Settings & Dedicated Info Pages
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onNavigateToAbout = { navController.navigate(Screen.About.route) },
+                    onNavigateToTerms = { navController.navigate(Screen.Terms.route) },
+                    onNavigateToPrivacy = { navController.navigate(Screen.PrivacyPolicy.route) },
+                    onNavigateToFaq = { navController.navigate(Screen.Faq.route) }
+                )
+            }
+            composable(Screen.About.route) {
+                AboutScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Terms.route) {
+                TermsScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.PrivacyPolicy.route) {
+                PrivacyPolicyScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Faq.route) {
+                FaqScreen(onBack = { navController.popBackStack() })
             }
 
             // Profile

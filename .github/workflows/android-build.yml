@@ -78,14 +78,29 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.10
-          name: EcoVision Release v1.0.10
+          tag_name: v1.0.11
+          name: EcoVision Release v1.0.11
           draft: false
           prerelease: false
           body: |
-            ### ✨ EcoVision Release v1.0.10 (UI & UX Polish Release)
+            ### 🚀 EcoVision Release v1.0.11 (Complete Platform & UX Upgrade)
 
-            Smooth animated screen transitions, tactile spring button feedback, full Light & Dark theme consistency across cards and live tracking, animated threshold progress, and instant waste search guide.
+            #### ✨ What's New in v1.0.11:
+            - **🗑️ Onboarding Screen Removed**: Direct streamlined launch from Splash to Auth or Dashboard.
+            - **🧭 Animated Bottom Bar + Settings Hub**:
+              - Replaced Profile bottom tab with **Settings**, featuring a clean flat list of clickable pages: **Profile**, **About**, **Terms and Conditions**, **Privacy Policy**, and **FAQ** (each on its own dedicated page).
+              - Added a horizontally sliding animated active indicator pill moving smoothly from one nav link to another.
+            - **🚚 Pickup Agent Dashboard Fixed & Upgraded**:
+              - Distinct, working **Desk (Home)**, **Pickups**, and **History & Godown** tabs.
+              - Removed in-app messaging/chat in favor of direct platform phone calling (`Intent.ACTION_DIAL`).
+            - **🔔 Admin Push Notifications**:
+              - Super Admin can compose & broadcast push notifications to All Users, Citizens, Pickup Agents, or Buyer Companies with real Android notifications and home banners.
+            - **🎁 Profile Referral Sharing with App Logo**:
+              - Share your Referral Code along with the official EcoVision truck logo image and invitation message via `FileProvider`.
+            - **📍 All 14 Kerala Districts Picker**:
+              - Full scrollable 14 Kerala districts selector during registration.
+            - **💾 Offline Caching & Redeem Guard**:
+              - Vouchers and announcements cache to device storage for offline browsing, while Voucher & Cash Redemptions strictly require an active internet connection.
 
             #### 🚀 What's New in v1.0.10:
             - **🎬 Smooth Animated Navigation & Floating Dock**:

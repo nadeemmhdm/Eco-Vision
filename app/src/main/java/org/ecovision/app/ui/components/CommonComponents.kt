@@ -1005,10 +1005,10 @@ fun Image3PickupLiveCard(
             )
         }
 
-        // 6. 3 Action Pill Buttons (Call, Chat, Action)
+        // 6. 2 Action Pill Buttons (Direct Platform Call, Verify / Weigh)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
                 onClick = onCallClick,
@@ -1026,23 +1026,8 @@ fun Image3PickupLiveCard(
             }
 
             Button(
-                onClick = onChatClick,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(vertical = 10.dp)
-            ) {
-                Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Chat", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            Button(
                 onClick = onVerifyClick,
-                modifier = Modifier.weight(1.4f),
+                modifier = Modifier.weight(1.6f),
                 colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 10.dp)
@@ -1066,6 +1051,38 @@ fun EcoFloatingBottomBar(
     onNavigate: (String) -> Unit,
     onCenterScanClick: () -> Unit
 ) {
+    val agentTab by SessionManager.agentTab.collectAsState()
+    val companyTab by SessionManager.companyTab.collectAsState()
+    val adminTab by SessionManager.adminTab.collectAsState()
+
+    val item1Selected = when (role) {
+        "company" -> currentRoute == "company_dashboard" && companyTab == 0
+        "admin" -> currentRoute == "admin_dashboard" && adminTab == 0
+        "agent" -> currentRoute == "agent_dashboard" && agentTab == 0
+        else -> currentRoute == "user_home"
+    }
+    val item2Selected = when (role) {
+        "company" -> currentRoute == "company_dashboard" && companyTab == 1
+        "admin" -> currentRoute == "admin_dashboard" && adminTab == 1
+        "agent" -> currentRoute == "agent_dashboard" && agentTab == 1
+        else -> currentRoute == "virtual_bin"
+    }
+    val item3Selected = when (role) {
+        "company" -> currentRoute == "company_dashboard" && companyTab == 2
+        "admin" -> currentRoute == "admin_dashboard" && adminTab == 3
+        "agent" -> currentRoute == "agent_dashboard" && agentTab == 2
+        else -> currentRoute == "wallet" || currentRoute == "leaf_coins"
+    }
+    val item4Selected = currentRoute in listOf("settings", "profile", "about", "terms", "privacy_policy", "faq")
+
+    val activeSlotIndex = when {
+        item1Selected -> 0
+        item2Selected -> 1
+        item3Selected -> 2
+        item4Selected -> 3
+        else -> -1
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1083,140 +1100,167 @@ fun EcoFloatingBottomBar(
                 .height(68.dp)
                 .align(Alignment.BottomCenter)
         ) {
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp)
             ) {
-                // Item 1: Home / Primary Desk
-                BottomNavIconItem(
-                    label = when (role) {
-                        "company" -> "Godown"
-                        "admin" -> "KYC"
-                        "agent" -> "Desk"
-                        else -> "Home"
-                    },
-                    icon = when (role) {
-                        "company" -> Icons.Default.Storefront
-                        "admin" -> Icons.Default.VerifiedUser
-                        "agent" -> Icons.Default.Home
-                        else -> Icons.Default.Home
-                    },
-                    isSelected = when (role) {
-                        "company" -> currentRoute == "company_dashboard" && SessionManager.companyTab.value == 0
-                        "admin" -> currentRoute == "admin_dashboard" && SessionManager.adminTab.value == 0
-                        "agent" -> currentRoute == "agent_dashboard" && SessionManager.agentTab.value == 0
-                        else -> currentRoute == "user_home"
-                    },
-                    onClick = {
-                        when (role) {
-                            "agent" -> {
-                                SessionManager.setAgentTab(0)
-                                onNavigate("agent_dashboard")
+                val dockWidth = maxWidth
+                val fabSpace = 56.dp
+                val slotWidth = (dockWidth - fabSpace) / 4f
+                val targetIndicatorX = when (activeSlotIndex) {
+                    0 -> slotWidth * 0.5f - 14.dp
+                    1 -> slotWidth * 1.5f - 14.dp
+                    2 -> slotWidth * 2.5f + fabSpace - 14.dp
+                    3 -> slotWidth * 3.5f + fabSpace - 14.dp
+                    else -> 0.dp
+                }
+                val animatedIndicatorX by animateDpAsState(
+                    targetValue = targetIndicatorX,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    label = "sliding_nav_bar_indicator"
+                )
+
+                // Horizontally sliding top indicator pill that moves smoothly from one link to another
+                if (activeSlotIndex >= 0) {
+                    Box(
+                        modifier = Modifier
+                            .offset(x = animatedIndicatorX, y = 2.dp)
+                            .width(28.dp)
+                            .height(3.5.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Item 1: Home / Primary Desk
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        BottomNavIconItem(
+                            label = when (role) {
+                                "company" -> "Godown"
+                                "admin" -> "KYC"
+                                "agent" -> "Desk"
+                                else -> "Home"
+                            },
+                            icon = when (role) {
+                                "company" -> Icons.Default.Storefront
+                                "admin" -> Icons.Default.VerifiedUser
+                                "agent" -> Icons.Default.Home
+                                else -> Icons.Default.Home
+                            },
+                            isSelected = item1Selected,
+                            onClick = {
+                                when (role) {
+                                    "agent" -> {
+                                        SessionManager.setAgentTab(0)
+                                        onNavigate("agent_dashboard")
+                                    }
+                                    "company" -> {
+                                        SessionManager.setCompanyTab(0)
+                                        onNavigate("company_dashboard")
+                                    }
+                                    "admin" -> {
+                                        SessionManager.setAdminTab(0)
+                                        onNavigate("admin_dashboard")
+                                    }
+                                    else -> onNavigate("user_home")
+                                }
                             }
-                            "company" -> {
-                                SessionManager.setCompanyTab(0)
-                                onNavigate("company_dashboard")
-                            }
-                            "admin" -> {
-                                SessionManager.setAdminTab(0)
-                                onNavigate("admin_dashboard")
-                            }
-                            else -> onNavigate("user_home")
-                        }
+                        )
                     }
-                )
 
-                // Item 2: Operations / Pickups / Orders / User Governance
-                BottomNavIconItem(
-                    label = when (role) {
-                        "company" -> "Orders"
-                        "admin" -> "Gov"
-                        "agent" -> "Pickups"
-                        else -> "Virtual Bin"
-                    },
-                    icon = when (role) {
-                        "company" -> Icons.Default.Inventory
-                        "admin" -> Icons.Default.People
-                        "agent" -> Icons.Default.LocalShipping
-                        else -> Icons.Default.DeleteOutline
-                    },
-                    isSelected = when (role) {
-                        "company" -> currentRoute == "company_dashboard" && SessionManager.companyTab.value == 1
-                        "admin" -> currentRoute == "admin_dashboard" && SessionManager.adminTab.value == 1
-                        "agent" -> currentRoute == "agent_dashboard" && SessionManager.agentTab.value == 0
-                        else -> currentRoute == "virtual_bin"
-                    },
-                    onClick = {
-                        when (role) {
-                            "agent" -> {
-                                SessionManager.setAgentTab(0)
-                                onNavigate("agent_dashboard")
+                    // Item 2: Operations / Pickups / Orders / User Governance
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        BottomNavIconItem(
+                            label = when (role) {
+                                "company" -> "Orders"
+                                "admin" -> "Gov"
+                                "agent" -> "Pickups"
+                                else -> "Bin"
+                            },
+                            icon = when (role) {
+                                "company" -> Icons.Default.Inventory
+                                "admin" -> Icons.Default.People
+                                "agent" -> Icons.Default.LocalShipping
+                                else -> Icons.Default.DeleteOutline
+                            },
+                            isSelected = item2Selected,
+                            onClick = {
+                                when (role) {
+                                    "agent" -> {
+                                        SessionManager.setAgentTab(1)
+                                        onNavigate("agent_dashboard")
+                                    }
+                                    "company" -> {
+                                        SessionManager.setCompanyTab(1)
+                                        onNavigate("company_dashboard")
+                                    }
+                                    "admin" -> {
+                                        SessionManager.setAdminTab(1)
+                                        onNavigate("admin_dashboard")
+                                    }
+                                    else -> onNavigate("virtual_bin")
+                                }
                             }
-                            "company" -> {
-                                SessionManager.setCompanyTab(1)
-                                onNavigate("company_dashboard")
-                            }
-                            "admin" -> {
-                                SessionManager.setAdminTab(1)
-                                onNavigate("admin_dashboard")
-                            }
-                            else -> onNavigate("virtual_bin")
-                        }
+                        )
                     }
-                )
 
-                // Spacer for the center elevated floating button
-                Spacer(modifier = Modifier.width(56.dp))
+                    // Spacer for the center elevated floating button
+                    Spacer(modifier = Modifier.width(fabSpace))
 
-                // Item 4: Wallet / Redeems / Vouchers / ESG
-                BottomNavIconItem(
-                    label = when (role) {
-                        "company" -> "ESG"
-                        "admin" -> "Payouts"
-                        "agent" -> "History"
-                        else -> "Wallet"
-                    },
-                    icon = when (role) {
-                        "admin" -> Icons.Default.Payments
-                        "company" -> Icons.Default.Verified
-                        "agent" -> Icons.Default.History
-                        else -> Icons.Default.AccountBalanceWallet
-                    },
-                    isSelected = when (role) {
-                        "company" -> currentRoute == "company_dashboard" && SessionManager.companyTab.value == 2
-                        "admin" -> currentRoute == "admin_dashboard" && SessionManager.adminTab.value == 3
-                        "agent" -> currentRoute == "agent_dashboard" && SessionManager.agentTab.value == 1
-                        else -> currentRoute == "wallet" || currentRoute == "leaf_coins"
-                    },
-                    onClick = {
-                        when (role) {
-                            "admin" -> {
-                                SessionManager.setAdminTab(3)
-                                onNavigate("admin_dashboard")
+                    // Item 3: Wallet / Redeems / History / ESG
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        BottomNavIconItem(
+                            label = when (role) {
+                                "company" -> "ESG"
+                                "admin" -> "Payouts"
+                                "agent" -> "History"
+                                else -> "Wallet"
+                            },
+                            icon = when (role) {
+                                "admin" -> Icons.Default.Payments
+                                "company" -> Icons.Default.Verified
+                                "agent" -> Icons.Default.History
+                                else -> Icons.Default.AccountBalanceWallet
+                            },
+                            isSelected = item3Selected,
+                            onClick = {
+                                when (role) {
+                                    "admin" -> {
+                                        SessionManager.setAdminTab(3)
+                                        onNavigate("admin_dashboard")
+                                    }
+                                    "company" -> {
+                                        SessionManager.setCompanyTab(2)
+                                        onNavigate("company_dashboard")
+                                    }
+                                    "agent" -> {
+                                        SessionManager.setAgentTab(2)
+                                        onNavigate("agent_dashboard")
+                                    }
+                                    else -> onNavigate("wallet")
+                                }
                             }
-                            "company" -> {
-                                SessionManager.setCompanyTab(2)
-                                onNavigate("company_dashboard")
-                            }
-                            "agent" -> {
-                                SessionManager.setAgentTab(1)
-                                onNavigate("agent_dashboard")
-                            }
-                            else -> onNavigate("wallet")
-                        }
+                        )
                     }
-                )
 
-                // Item 5: Profile
-                BottomNavIconItem(
-                    label = "Profile",
-                    icon = Icons.Default.Person,
-                    isSelected = currentRoute == "profile",
-                    onClick = { onNavigate("profile") }
-                )
+                    // Item 4: Settings
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        BottomNavIconItem(
+                            label = "Settings",
+                            icon = Icons.Default.Settings,
+                            isSelected = item4Selected,
+                            onClick = { onNavigate("settings") }
+                        )
+                    }
+                }
             }
         }
 
@@ -1250,14 +1294,20 @@ fun EcoFloatingBottomBar(
                 )
                 .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
                 .clickable {
-                    if (role == "admin") {
-                        SessionManager.setAdminTab(2)
-                        onNavigate("admin_dashboard")
-                    } else if (role == "company") {
-                        SessionManager.setCompanyTab(0)
-                        onNavigate("company_dashboard")
-                    } else {
-                        onCenterScanClick()
+                    when (role) {
+                        "admin" -> {
+                            SessionManager.setAdminTab(2)
+                            onNavigate("admin_dashboard")
+                        }
+                        "company" -> {
+                            SessionManager.setCompanyTab(0)
+                            onNavigate("company_dashboard")
+                        }
+                        "agent" -> {
+                            SessionManager.setAgentTab(1)
+                            onNavigate("agent_dashboard")
+                        }
+                        else -> onCenterScanClick()
                     }
                 },
             contentAlignment = Alignment.Center
@@ -1266,6 +1316,7 @@ fun EcoFloatingBottomBar(
                 imageVector = when (role) {
                     "admin" -> Icons.Default.CardGiftcard
                     "company" -> Icons.Default.Search
+                    "agent" -> Icons.Default.Balance
                     else -> Icons.Default.QrCodeScanner
                 },
                 contentDescription = "Action",

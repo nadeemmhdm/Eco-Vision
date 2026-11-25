@@ -576,50 +576,91 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             )
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedTextField(
-                                    value = selectedDistrict,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Service District *") },
-                                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = EcoEmerald400) },
-                                    trailingIcon = {
-                                        IconButton(onClick = { districtExpanded = !districtExpanded }) {
-                                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select District", tint = Color.White)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { districtExpanded = true },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = EcoEmerald500,
-                                        unfocusedBorderColor = CardBorderBright
-                                    )
-                                )
-                                DropdownMenu(
-                                    expanded = districtExpanded,
-                                    onDismissRequest = { districtExpanded = false },
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.9f)
-                                        .background(Slate850)
-                                ) {
-                                    KeralaDistricts.forEach { dist ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    text = dist,
-                                                    color = if (dist == selectedDistrict) EcoEmerald400 else Color.White,
-                                                    fontWeight = if (dist == selectedDistrict) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                            },
-                                            onClick = {
-                                                selectedDistrict = dist
-                                                districtExpanded = false
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = selectedDistrict,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Service District (All 14 Kerala Districts) *") },
+                                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = EcoEmerald400) },
+                                        trailingIcon = {
+                                            IconButton(onClick = { districtExpanded = true }) {
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select District", tint = Color.White)
                                             }
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { districtExpanded = true },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = EcoEmerald500,
+                                            unfocusedBorderColor = CardBorderBright
                                         )
-                                    }
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .clickable { districtExpanded = true }
+                                    )
                                 }
-                            }
+
+                                if (districtExpanded) {
+                                    AlertDialog(
+                                        onDismissRequest = { districtExpanded = false },
+                                        containerColor = Slate850,
+                                        title = {
+                                            Text(
+                                                "Select Kerala District (${KeralaDistricts.size})",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                        },
+                                        text = {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(max = 360.dp)
+                                                    .verticalScroll(rememberScrollState()),
+                                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                KeralaDistricts.forEach { dist ->
+                                                    val isSelected = dist == selectedDistrict
+                                                    Surface(
+                                                        color = if (isSelected) EcoEmerald600.copy(alpha = 0.25f) else Color.Transparent,
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .clickable {
+                                                                selectedDistrict = dist
+                                                                districtExpanded = false
+                                                            }
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Text(
+                                                                text = dist,
+                                                                color = if (isSelected) EcoEmerald400 else Color.White,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                                fontSize = 14.sp
+                                                            )
+                                                            if (isSelected) {
+                                                                Icon(Icons.Default.Check, null, tint = EcoEmerald400, modifier = Modifier.size(18.dp))
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = { districtExpanded = false }) {
+                                                Text("Close", color = EcoEmerald400)
+                                            }
+                                        }
+                                    )
+                                }
 
                             Spacer(modifier = Modifier.height(14.dp))
 

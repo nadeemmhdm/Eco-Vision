@@ -3,7 +3,14 @@ package org.ecovision.app.ui.screens.profile
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.core.content.FileProvider
+import org.ecovision.app.R
+import java.io.File
+import java.io.FileOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -259,6 +266,84 @@ fun ProfileScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Open Wallet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            // ==========================================
+            // REFERRAL CODE SHARE (WITH APP LOGO + MESSAGE)
+            // ==========================================
+            val myReferralCode = profile?.referralCode?.takeIf { it.isNotBlank() }
+                ?: "ECO-${(profile?.username ?: profile?.fullName ?: "KERALA").replace(" ", "").uppercase().take(6)}"
+            GlassCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Invite Friends & Earn Coins",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Referral Code: $myReferralCode",
+                            color = LeafCoinGold,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "Share EcoVision app logo & invite message",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            try {
+                                val shareDir = File(context.cacheDir, "share_images").apply { mkdirs() }
+                                val logoFile = File(shareDir, "ecovision_logo.png")
+                                val bmp = BitmapFactory.decodeResource(context.resources, R.drawable.ic_ecovision_truck)
+                                if (bmp != null) {
+                                    FileOutputStream(logoFile).use { out ->
+                                        bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                    }
+                                }
+                                val logoUri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    logoFile
+                                )
+                                val shareMsg = "♻️ Join me on EcoVision — Kerala's Smart Waste Collection & Recycling App! Turn your dry recyclables into UPI Cash & Rewards.\n\nUse my Referral Code: $myReferralCode\nDownload now & start recycling!"
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "image/png"
+                                    putExtra(Intent.EXTRA_STREAM, logoUri)
+                                    putExtra(Intent.EXTRA_TEXT, shareMsg)
+                                    putExtra(Intent.EXTRA_SUBJECT, "Join EcoVision with my Referral Code $myReferralCode")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share EcoVision Referral"))
+                            } catch (e: Exception) {
+                                val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "♻️ Join EcoVision! Use my Referral Code: $myReferralCode to earn bonus Coins!"
+                                    )
+                                }
+                                context.startActivity(Intent.createChooser(fallbackIntent, "Share Referral Code"))
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Share", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }

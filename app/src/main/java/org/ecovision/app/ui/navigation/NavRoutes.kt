@@ -24,6 +24,11 @@ sealed class Screen(val route: String, val title: String) {
     data object CompanyDashboard : Screen("company_dashboard", "B2B Waste Marketplace")
     data object AdminDashboard : Screen("admin_dashboard", "Admin Governance")
 
-    // Profile & Settings
+    // Settings & Info Pages
+    data object Settings : Screen("settings", "Settings")
     data object Profile : Screen("profile", "Profile & Security")
+    data object About : Screen("about", "About EcoVision")
+    data object Terms : Screen("terms", "Terms and Conditions")
+    data object PrivacyPolicy : Screen("privacy_policy", "Privacy Policy")
+    data object Faq : Screen("faq", "FAQ")
 }

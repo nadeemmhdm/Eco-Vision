@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ import java.util.UUID
 @Composable
 fun AdminDashboardScreen() {
     val settings by SessionManager.platformSettings.collectAsState()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var profiles by remember { mutableStateOf<List<Profile>>(emptyList()) }
@@ -43,6 +45,11 @@ fun AdminDashboardScreen() {
     var cashRedemptions by remember { mutableStateOf<List<CashRedemption>>(emptyList()) }
     var voucherRedemptions by remember { mutableStateOf<List<VoucherRedemption>>(emptyList()) }
     var vehicleChangeRequests by remember { mutableStateOf<List<VehicleChangeRequest>>(emptyList()) }
+    var adminNotifications by remember { mutableStateOf<List<AdminNotification>>(emptyList()) }
+
+    var notifTitle by remember { mutableStateOf("") }
+    var notifMessage by remember { mutableStateOf("") }
+    var notifTargetRole by remember { mutableStateOf("all") }
 
     var isMaintenanceMode by remember { mutableStateOf(settings.maintenanceMode) }
     var downtimeNotice by remember { mutableStateOf(settings.maintenanceNotice) }
@@ -97,6 +104,7 @@ fun AdminDashboardScreen() {
             cashRedemptions = SupabaseClient.getCashRedemptions()
             voucherRedemptions = SupabaseClient.getVoucherRedemptions()
             vehicleChangeRequests = SupabaseClient.getVehicleChangeRequests()
+            adminNotifications = SupabaseClient.getAdminNotifications("admin")
         }
     }
 
@@ -786,6 +794,108 @@ fun AdminDashboardScreen() {
         // TAB 4: FLEET & SYSTEM SETTINGS
         // =========================================================================
         if (currentTab == 4) {
+            // Admin Push Notifications Broadcast Studio
+            item {
+                Text(
+                    text = "🔔 Push Notifications Broadcast",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Send instant push alerts & announcements to EcoVision users, agents, or companies.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LiquidGlassCard {
+                    OutlinedTextField(
+                        value = notifTitle,
+                        onValueChange = { notifTitle = it },
+                        label = { Text("Notification Title *") },
+                        placeholder = { Text("e.g. Double Coins Weekend!") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = notifMessage,
+                        onValueChange = { notifMessage = it },
+                        label = { Text("Message Body *") },
+                        placeholder = { Text("Recycle dry plastic & cardboard today to earn 2x Coins!") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text("Target Audience", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        listOf("all" to "All", "user" to "Citizens", "agent" to "Agents", "company" to "Buyers").forEach { (roleCode, label) ->
+                            val selected = notifTargetRole == roleCode
+                            Surface(
+                                color = if (selected) EcoEmerald600 else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { notifTargetRole = roleCode }
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    EcoButton(
+                        text = "Send Push Notification",
+                        icon = Icons.Default.NotificationsActive,
+                        enabled = notifTitle.isNotBlank() && notifMessage.isNotBlank(),
+                        onClick = {
+                            scope.launch {
+                                val newNotif = AdminNotification(
+                                    id = UUID.randomUUID().toString(),
+                                    title = notifTitle.trim(),
+                                    message = notifMessage.trim(),
+                                    targetRole = notifTargetRole,
+                                    createdAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+                                )
+                                SupabaseClient.sendAdminNotification(newNotif)
+                                NotificationHelper.showPushNotification(context, newNotif.title, newNotif.message)
+                                statusMessage = "Push notification broadcast to ${notifTargetRole.uppercase()}!"
+                                notifTitle = ""
+                                notifMessage = ""
+                                refresh()
+                            }
+                        }
+                    )
+
+                    if (adminNotifications.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Recent Broadcasts (${adminNotifications.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        adminNotifications.take(3).forEach { n ->
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Text("${n.title} • [${n.targetRole.uppercase()}]", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EcoEmerald400)
+                                    Text(n.message, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Vehicle Requests
             item {
                 Text(

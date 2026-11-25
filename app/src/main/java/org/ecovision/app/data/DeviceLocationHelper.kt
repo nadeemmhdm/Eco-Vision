@@ -2,6 +2,8 @@ package org.ecovision.app.data
 
 import android.content.Context
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import java.net.InetAddress
 import java.net.NetworkInterface
@@ -51,5 +53,17 @@ object DeviceLocationHelper {
             false
         }
         return isGpsEnabled || isNetworkEnabled
+    }
+
+    fun isNetworkAvailable(context: Context): Boolean {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+            val network = cm.activeNetwork ?: return false
+            val capabilities = cm.getNetworkCapabilities(network) ?: return false
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } catch (e: Exception) {
+            false
+        }
     }
 }

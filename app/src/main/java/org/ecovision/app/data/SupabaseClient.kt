@@ -14,6 +14,8 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import java.util.UUID
 
@@ -975,6 +977,15 @@ object SupabaseClient {
     private val inMemoryMarketplaceProducts = mutableListOf<MarketplaceProduct>()
     private val inMemoryPickupRequests = mutableListOf<PickupRequest>()
     private val inMemoryVirtualBinItems = mutableListOf<VirtualBinItem>()
+    private val inMemoryAdminNotifications = mutableListOf<AdminNotification>()
+
+    private val cacheJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    private val cachePrefs by lazy {
+        org.ecovision.app.EcoVisionApplication.instance.getSharedPreferences(
+            "ecovision_offline_cache",
+            android.content.Context.MODE_PRIVATE
+        )
+    }
 
     // --- Vouchers & Wallet ---
     suspend fun getVouchers(): List<EcoVoucher> {
@@ -1017,9 +1028,19 @@ object SupabaseClient {
                 parameter("order", "coin_cost.asc")
             }.body<List<EcoVoucher>>()
             val combined = (list + inMemoryVouchers).distinctBy { it.id }
-            if (combined.isNotEmpty()) combined else (defaultVouchers + inMemoryVouchers).distinctBy { it.id }
+            val result = if (combined.isNotEmpty()) combined else (defaultVouchers + inMemoryVouchers).distinctBy { it.id }
+            try {
+                cachePrefs.edit().putString("cached_vouchers", cacheJson.encodeToString(result)).apply()
+            } catch (_: Exception) {}
+            result
         } catch (e: Exception) {
-            (defaultVouchers + inMemoryVouchers).distinctBy { it.id }
+            val cached = try {
+                cachePrefs.getString("cached_vouchers", null)?.let {
+                    cacheJson.decodeFromString<List<EcoVoucher>>(it)
+                }
+            } catch (_: Exception) { null }
+            val base = cached ?: defaultVouchers
+            (base + inMemoryVouchers).distinctBy { it.id }
         }
     }
 
@@ -1295,5 +1316,46 @@ object SupabaseClient {
         } catch (e: Exception) {
             false
         }
+    }
+
+    // --- Admin Push Notifications ---
+    suspend fun sendAdminNotification(notification: AdminNotification): Boolean {
+        inMemoryAdminNotifications.add(0, notification)
+        try {
+            cachePrefs.edit().putString("cached_admin_notifications", cacheJson.encodeToString(inMemoryAdminNotifications)).apply()
+        } catch (_: Exception) {}
+        return try {
+            httpClient.post("$REST_URL/admin_notifications") {
+                supabaseHeaders()
+                contentType(ContentType.Application.Json)
+                setBody(notification)
+            }
+            true
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    suspend fun getAdminNotifications(roleFilter: String? = null): List<AdminNotification> {
+        val list = try {
+            val remote = httpClient.get("$REST_URL/admin_notifications") {
+                supabaseHeaders()
+                parameter("order", "created_at.desc")
+            }.body<List<AdminNotification>>()
+            val combined = (remote + inMemoryAdminNotifications).distinctBy { it.id }
+            try {
+                cachePrefs.edit().putString("cached_admin_notifications", cacheJson.encodeToString(combined)).apply()
+            } catch (_: Exception) {}
+            combined
+        } catch (_: Exception) {
+            val cached = try {
+                cachePrefs.getString("cached_admin_notifications", null)?.let {
+                    cacheJson.decodeFromString<List<AdminNotification>>(it)
+                }
+            } catch (_: Exception) { null }
+            ((cached ?: emptyList()) + inMemoryAdminNotifications).distinctBy { it.id }
+        }
+        return if (roleFilter == null || roleFilter == "admin") list
+        else list.filter { it.targetRole == "all" || it.targetRole == roleFilter }
     }
 }
