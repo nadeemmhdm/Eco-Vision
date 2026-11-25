@@ -318,6 +318,68 @@ fun UserHomeScreen(
                     singleLine = true
                 )
 
+                // Instant Search Results Card when user types in search box
+                val searchableWasteGuide = remember {
+                    listOf(
+                        Triple("Plastic Bottle (PET)", "Blue Bin · Recyclable (₹16.50/kg)", true),
+                        Triple("Glass Bottle", "Blue Bin · Recyclable (₹4.00/kg)", true),
+                        Triple("Cardboard Box", "Blue Bin · Recyclable (₹10.00/kg)", true),
+                        Triple("Aluminum Drink Can", "Blue Bin · Recyclable (₹95.00/kg)", true),
+                        Triple("Newspaper & Paper", "Blue Bin · Recyclable (₹12.00/kg)", true),
+                        Triple("AA / Li-ion Battery", "Red Bin · E-Waste / Hazardous", false),
+                        Triple("Food & Kitchen Scraps", "Green Bin · Organic Compost", false),
+                        Triple("Styrofoam / Thermocol", "General Rubbish · Non-Recyclable", false)
+                    )
+                }
+                val filteredResults = remember(searchQuery) {
+                    if (searchQuery.isBlank()) emptyList()
+                    else searchableWasteGuide.filter {
+                        it.first.contains(searchQuery, ignoreCase = true) ||
+                            it.second.contains(searchQuery, ignoreCase = true)
+                    }
+                }
+                AnimatedVisibility(visible = searchQuery.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (filteredResults.isEmpty()) {
+                                Text(
+                                    text = "No exact match for \"$searchQuery\". Tap the Scanner icon to identify with AI!",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp
+                                )
+                            } else {
+                                filteredResults.take(4).forEach { (itemName, binTip, isRecyclable) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                            .clickable {
+                                                searchQuery = ""
+                                                onNavigateToScan()
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(itemName, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(binTip, color = if (isRecyclable) MaterialTheme.colorScheme.primary else LeafCoinGold, fontSize = 11.sp)
+                                        }
+                                        Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Location / District Status Alerts
                 if (!isLocationEnabled) {
                     Surface(

@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -80,34 +82,70 @@ fun MainAppHost() {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (isNavBarVisible) {
-                EcoFloatingBottomBar(
-                    currentRoute = currentRoute,
-                    role = profile?.role,
-                    onNavigate = { targetRoute ->
-                        if (currentRoute != targetRoute) {
-                            navController.navigate(targetRoute) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            AnimatedVisibility(
+                visible = isNavBarVisible,
+                enter = slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(280, easing = FastOutSlowInEasing)
+                ) + fadeIn(tween(220)),
+                exit = slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(220, easing = FastOutSlowInEasing)
+                ) + fadeOut(tween(180))
+            ) {
+                Box(modifier = Modifier.navigationBarsPadding()) {
+                    EcoFloatingBottomBar(
+                        currentRoute = currentRoute,
+                        role = profile?.role,
+                        onNavigate = { targetRoute ->
+                            if (currentRoute != targetRoute) {
+                                navController.navigate(targetRoute) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
+                            }
+                        },
+                        onCenterScanClick = {
+                            if (currentRoute != Screen.AiScan.route) {
+                                navController.navigate(Screen.AiScan.route)
                             }
                         }
-                    },
-                    onCenterScanClick = {
-                        if (currentRoute != Screen.AiScan.route) {
-                            navController.navigate(Screen.AiScan.route)
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     ) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = Screen.Splash.route,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+            enterTransition = {
+                fadeIn(animationSpec = tween(260, easing = FastOutSlowInEasing)) +
+                    slideInHorizontally(
+                        initialOffsetX = { it / 16 },
+                        animationSpec = tween(260, easing = FastOutSlowInEasing)
+                    )
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing))
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(260, easing = FastOutSlowInEasing)) +
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 16 },
+                        animationSpec = tween(260, easing = FastOutSlowInEasing)
+                    )
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { it / 16 },
+                        animationSpec = tween(200, easing = FastOutSlowInEasing)
+                    )
+            }
         ) {
             // Splash Screen
             composable(Screen.Splash.route) {

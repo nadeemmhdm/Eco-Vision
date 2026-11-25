@@ -13,6 +13,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -345,16 +347,17 @@ fun RoleSwitcherPill() {
 @Composable
 fun GlassCard(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Slate850,
-    borderColor: Color = CardBorder,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, borderColor, RoundedCornerShape(18.dp)),
-        shape = RoundedCornerShape(18.dp),
-        color = backgroundColor
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        color = backgroundColor,
+        shadowElevation = 3.dp
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -367,13 +370,13 @@ fun GlassCard(
 fun StatusBadge(
     text: String,
     color: Color = EcoEmerald500,
-    backgroundColor: Color = color.copy(alpha = 0.15f)
+    backgroundColor: Color = color.copy(alpha = 0.14f)
 ) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
-            .border(1.dp, color.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
@@ -394,18 +397,35 @@ fun EcoButton(
     icon: ImageVector? = null,
     isSecondary: Boolean = false
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.97f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "btn_press_scale"
+    )
+
     Button(
         onClick = onClick,
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp),
+            .height(50.dp)
+            .scale(pressScale),
         shape = RoundedCornerShape(14.dp),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = if (isSecondary) 0.dp else 3.dp,
+            pressedElevation = 1.dp
+        ),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSecondary) Slate800 else EcoEmerald500,
-            contentColor = if (isSecondary) Slate200 else Slate950,
-            disabledContainerColor = Slate800,
-            disabledContentColor = Slate600
+            containerColor = if (isSecondary) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
+            contentColor = if (isSecondary) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
     ) {
         Row(
@@ -469,7 +489,12 @@ fun ThresholdProgressBar(
     unit: String = "₹",
     isMet: Boolean
 ) {
-    val progress = (currentValue / thresholdValue).toFloat().coerceIn(0f, 1f)
+    val targetProgress = (currentValue / thresholdValue).toFloat().coerceIn(0f, 1f)
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+        label = "threshold_progress"
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -479,24 +504,24 @@ fun ThresholdProgressBar(
             Text(
                 text = "Minimum Pickup Threshold ($unit$thresholdValue)",
                 style = MaterialTheme.typography.labelSmall,
-                color = Slate400
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "$unit${String.format("%.1f", currentValue)} / $unit$thresholdValue",
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isMet) EcoEmerald400 else Slate400,
+                color = if (isMet) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         LinearProgressIndicator(
-            progress = { progress },
+            progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp)),
             color = if (isMet) EcoEmerald500 else LeafCoinGold,
-            trackColor = Slate800
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
@@ -535,8 +560,8 @@ fun Image3PickupLiveCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(Slate850)
-            .border(1.dp, CardBorderBright, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -604,7 +629,7 @@ fun Image3PickupLiveCard(
         ) {
             Text(
                 text = "Track Your Pickup",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -613,12 +638,12 @@ fun Image3PickupLiveCard(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(EcoEmerald400)
+                        .background(EcoEmerald500)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Live Tracking",
-                    color = EcoEmerald400,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 11.sp
                 )
@@ -634,7 +659,6 @@ fun Image3PickupLiveCard(
             for (i in 1..4) {
                 val isCompleted = step > i
                 val isActive = step == i
-                val isPending = step < i
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -647,7 +671,7 @@ fun Image3PickupLiveCard(
                             .background(
                                 when {
                                     isCompleted || isActive -> EcoEmerald500
-                                    else -> Slate700
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
                                 }
                             ),
                         contentAlignment = Alignment.Center
@@ -655,14 +679,14 @@ fun Image3PickupLiveCard(
                         when {
                             isCompleted -> Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
                             isActive -> Icon(Icons.Default.LocalShipping, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            else -> Icon(Icons.Default.Home, null, tint = Slate400, modifier = Modifier.size(14.dp))
+                            else -> Icon(Icons.Default.Home, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
                         }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stepLabels[i - 1],
                         fontSize = 9.sp,
-                        color = if (isActive || isCompleted) Color.White else Slate500,
+                        color = if (isActive || isCompleted) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                         textAlign = TextAlign.Center,
                         lineHeight = 11.sp
@@ -674,7 +698,7 @@ fun Image3PickupLiveCard(
                         modifier = Modifier
                             .weight(0.7f)
                             .height(2.dp)
-                            .background(if (step > i) EcoEmerald500 else Slate700)
+                            .background(if (step > i) EcoEmerald500 else MaterialTheme.colorScheme.outlineVariant)
                             .padding(bottom = 12.dp)
                     )
                 }
@@ -881,9 +905,9 @@ fun Image3PickupLiveCard(
 
         // 5. Driver & Vehicle Details Card
         Surface(
-            color = Slate800,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -911,7 +935,7 @@ fun Image3PickupLiveCard(
                             .size(16.dp)
                             .clip(CircleShape)
                             .background(EcoEmerald400)
-                            .border(1.dp, Slate800, CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                             .align(Alignment.BottomEnd),
                         contentAlignment = Alignment.Center
                     ) {
@@ -925,13 +949,13 @@ fun Image3PickupLiveCard(
                     Text(
                         text = agentName,
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = agentRole,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Slate400,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
                     )
                     Text(
@@ -946,19 +970,19 @@ fun Image3PickupLiveCard(
                     modifier = Modifier
                         .height(38.dp)
                         .width(1.dp)
-                        .background(CardBorderBright)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1.1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocalShipping, null, tint = EcoEmerald400, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.LocalShipping, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = vehiclePlate,
                             style = MaterialTheme.typography.titleSmall,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
@@ -966,7 +990,7 @@ fun Image3PickupLiveCard(
                     Text(
                         text = vehicleType,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Slate400,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
                     )
                 }
@@ -976,7 +1000,7 @@ fun Image3PickupLiveCard(
         if (addressText != null) {
             Text(
                 text = "Destination: $addressText",
-                color = Slate300,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp
             )
         }
@@ -989,25 +1013,31 @@ fun Image3PickupLiveCard(
             Button(
                 onClick = onCallClick,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 10.dp)
             ) {
-                Icon(Icons.Default.Phone, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Phone, null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Call", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Call", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Button(
                 onClick = onChatClick,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
                 shape = RoundedCornerShape(12.dp),
                 contentPadding = PaddingValues(vertical = 10.dp)
             ) {
-                Icon(Icons.Default.Chat, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Chat, null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Chat", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Chat", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Button(

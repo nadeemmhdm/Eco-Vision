@@ -78,14 +78,27 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.9
-          name: EcoVision Release v1.0.9
+          tag_name: v1.0.10
+          name: EcoVision Release v1.0.10
           draft: false
           prerelease: false
           body: |
-            ### ♻️ EcoVision Release v1.0.9 (Latest APK)
+            ### ✨ EcoVision Release v1.0.10 (UI & UX Polish Release)
 
-            Complete AI Waste Classification, Recyclable vs Non-Recyclable Filtering, YouTube Upcycle Integration, Animated Bottom Nav, Interactive Google Map Route, 2FA QR Code, and Min ₹100 Cash Redemption.
+            Smooth animated screen transitions, tactile spring button feedback, full Light & Dark theme consistency across cards and live tracking, animated threshold progress, and instant waste search guide.
+
+            #### 🚀 What's New in v1.0.10:
+            - **🎬 Smooth Animated Navigation & Floating Dock**:
+              - Added fluid horizontal slide + fade transitions across all `NavHost` routes.
+              - Smooth `AnimatedVisibility` slide-in/out for the floating bottom dock when switching between dashboards and scanner/verification screens.
+              - Proper `navigationBarsPadding()` for clean gesture-bar clearance.
+            - **🫰 Tactile Micro-Interactions**:
+              - Spring-physics press scale feedback (`0.97x`) on all `EcoButton` actions.
+              - Smoothly animated `ThresholdProgressBar` fill transitions.
+            - **🌗 Full Light & Dark Theme Consistency**:
+              - Made `GlassCard`, `EcoButton`, `ThresholdProgressBar`, and `Image3PickupLiveCard` (Live Tracking) fully theme-aware (`MaterialTheme.colorScheme`) so Light Mode and Dark Mode both look crisp and cohesive.
+            - **🔍 Instant Waste Search Guide on Home**:
+              - Typing in the Home search bar displays live waste sorting & price-per-kg suggestions with 1-tap launch into AI Scanner.
 
             #### 🚀 What's New in v1.0.9:
             - **🧠 AI Waste Identification & Smart Classification**:
