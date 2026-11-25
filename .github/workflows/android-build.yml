@@ -78,54 +78,46 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.5
-          name: EcoVision Release v1.0.5
+          tag_name: v1.0.6
+          name: EcoVision Release v1.0.6
           draft: false
           prerelease: false
           body: |
-            ### 🪙 EcoVision Release v1.0.5 (Latest APK)
+            ### 🪙 EcoVision Release v1.0.6 (Latest APK)
 
-            Complete AI-Powered Smart Waste Management, Circular Economy & Rewards Wallet Platform for Android.
+            Complete AI-Powered Smart Waste Management, Liquid Glass UI, Multi-Desk Governance & Flippable Voucher Platform for Android.
 
-            #### 🚀 What's New in v1.0.5:
-            - **🤖 AI Gateway Integration & Cloud Multimodal Vision**:
-              - Connected to `https://ai-gateway-platform.mhdysn313.workers.dev/v1/chat/completions`.
-              - Powered by API key `app_NftMOURzTebhtIAhgz_gLeOZPGEOHqXB` with OpenAI-compatible multimodal chat completions (`model: "auto"`).
-              - Analyzes scrap photos for material grade, recyclable status, estimated base price, and DIY upcycling recommendations.
-              - In-app key configuration dialog with zero-latency fallback engine.
-            - **🛡️ Real Working 2FA TOTP Model**:
-              - Standard RFC 6238 TOTP engine compatible with Google Authenticator, Microsoft Authenticator, and Authy.
-              - Base32 secret key generation, 1-tap clipboard copy, 6-digit confirmation verification, and database persistence.
-            - **📑 Section-by-Section Profile Page ("Akki" Design)**:
-              - Structured into 8 clear, numbered modules:
-                - `01`: User Identity & Verification
-                - `02`: Eco Coins & Wallet Desk (featuring `EcoCoinIcon`, live balance, ₹ valuation)
-                - `03`: Two-Factor Authentication (2FA TOTP) Security Center
-                - `04`: KYC Verification Desk (status, admin rejection reasons, 5-attempt limit, 24-hr cooldown, auto-delete guarantee)
-                - `05`: Pickup Agent Vehicle Desk (for Agent role: `KL-07-AB-1234`, vehicle change requests)
-                - `06`: Service District & Address (Kerala 14 districts, Malappuram active pilot zone)
-                - `07`: Security & Device Compliance (device info, IP, privacy policy, terms)
-                - `08`: Danger Zone: 30-Day Inactive Account Deletion
-            - **⏳ Account Deletion with 30-Day Inactive Grace Period**:
-              - Schedules profile for permanent database purge after 30 days of inactivity.
-              - Signing in anytime within the 30-day window automatically cancels the deletion and restores active status.
-            - **🚚 Live Pickup Tracking Card (Matching Reference Image 3)**:
-              - Scheduled slot header banner with "✓ On Time" badge.
-              - 4-step horizontal stepper: `Request Placed` -> `Agent Assigned` -> `On the Way` -> `Arriving Soon`.
-              - Interactive Route card with road path, moving delivery truck, destination pin, and floating ETA pill ("Arriving in 12 min").
-              - Driver profile (Rafiq Khan, 4.8 stars) + Vehicle badge (`KL-07-AB-1234`, Green Van).
-              - Quick action pills: Call, Chat, Verify Vehicle / Doorstep Weigh.
-            - **📱 User Home & AI Scanner Redesign (Matching Reference Images 1 & 2)**:
-              - Curved emerald green header with bold "122 Items" recycled headline.
-              - 3 Circular percentage gauges: Recycled (65%), Compost (5%), Rubbish (2%).
-              - Search bar and "Recycle Again" cards.
-              - 6 Top Categories photo grid: Paper, Foil, Cardboard, Drink cans, Plastic Bottles, Glass.
-              - Camera viewfinder with corner brackets `[  ]`, centered reticle prompt, vibrant green "Start Scan" button, material table, curbside pickup card, and drop-off depots.
-            - **🪙 Coin Balance Decrease & Persistence Fix**:
-              - Instant local and cloud coin deduction upon redeeming UPI cash or claiming partner vouchers.
-            - **🎨 Consistent Emerald & Monochrome Design**:
-              - Zero mentions of "Supabase" and "Leaf Coins".
-              - Professional dark palette (`#050811`, `#15803D`, `#16A34A`, `#10B981`) across all screens.
+            #### 🚀 What's New in v1.0.6:
+            - **✨ Simplified Multi-Page Admin & Company Dashboards**:
+              - Transformed monolithic dashboard into 5 clean, uncluttered sub-pages / tabs:
+                - `01. KYC Verification Desk`: Instant identity review, proof inspection, one-click "Accept KYC ✓" approval.
+                - `02. User Governance Desk`: Manage citizen, agent, and company accounts, block/unblock, deletion tracking.
+                - `03. Voucher Studio & Card Vault`: Flippable 3D voucher models, voucher publishing, and waiting list code dispatch.
+                - `04. Cash Redeems & UPI Settlements`: Verify UPI IDs and approve direct wallet cash payouts (10 Coins = ₹1).
+                - `05. Fleet & System Settings`: Agent vehicle change requests with photo inspection, emergency maintenance mode, and dynamic pricing slabs.
+              - Company Dashboard split into 3 clean tabs:
+                - `01. Godown Marketplace`: Live pooled certified lots with material filters and wholesale pricing.
+                - `02. Orders & Manifests`: Digital waybills with manifest numbers (`EV-MANIFEST-XXXX`) and dispatch records.
+                - `03. ESG & Credentials`: Verified B2B buyer accreditation, cumulative carbon offset, and compliance badges.
+            - **🔍 Uploaded KYC Proof Viewer & Accept Button Fix**:
+              - New `ProofViewerDialog` modal to inspect high-resolution citizen ID and agent vehicle photos.
+              - Fixed "Accept KYC ✓" button availability so admins can approve or re-verify any profile without friction.
+            - **🃏 3D Flippable Voucher Card Model**:
+              - Interactive physical voucher card rendering in 3D perspective (`graphicsLayer` with 180° `rotationY`).
+              - Front side features brand logo, title, cash discount value, and Coin Cost with `EcoCoinIcon`.
+              - Back side flips smoothly to reveal the digital security barcode simulation, unique voucher PIN (`ECO-XXXX-YYYY`), and redemption guidelines.
+            - **💧 Liquid Glass UI & UX Design**:
+              - Translucent frosted glass containers (`LiquidGlassCard`) with dual-layer specular highlight borders (`#10B981` / `#60A5FA`).
+              - Shimmering backdrop depth and water-refractive surface styling across cards, banners, and modals.
+            - **🤖 3D Style Animated Mascot Characters**:
+              - "Leafy" 3D AI eco mascot (`AnimatedCharacterHero`) featuring smooth floating physics and pulsing halo glow.
+            - **📱 Floating Center Scanner FAB (Matching Reference Images 1, 2 & 3)**:
+              - Custom `EcoFloatingBottomBar` with elevated circular emerald green scanner button (`#16A34A` to `#15803D`) hovering above the dock.
+            - **🚚 Image 3 Onboarding Screen & Live Tracking**:
+              - "Pickup On Time." hero onboarding view with 3D recycling truck driving on winding road, green location pin, carousel indicator dots, and "Get Started ->" green pill button.
+              - Complete live tracking screen with scheduled slot banner, 4-step horizontal stepper, interactive map route, driver profile card (Rafiq Khan), and Quick Actions (Call, Chat, Verify Vehicle).
+            - **📸 Image 1 AI Scan & Instructions Flow**:
+              - Viewfinder with corner reticle brackets `[  ]`, "Start Scan" green button, 3-column material table, and dedicated Screen 4 Recycling Instructions with Curbside Pickup card and drop-off hubs.
 
             #### 🚀 What's New in v1.0.2:
             - **📷 First-Time Camera Access & Device Storage**: Runtime camera permissions (`rememberLauncherForActivityResult`), photo capture (`TakePicturePreview`), gallery image picking, and local device image caching (`cacheDir/waste_scans/`).

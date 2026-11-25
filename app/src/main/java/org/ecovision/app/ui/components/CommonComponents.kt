@@ -1,6 +1,7 @@
 package org.ecovision.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,9 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,7 +29,10 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import org.ecovision.app.data.EcoVoucher
+import org.ecovision.app.data.Profile
 import org.ecovision.app.data.SessionManager
 import org.ecovision.app.data.UserRole
 import org.ecovision.app.theme.*
@@ -83,6 +90,40 @@ fun EcoCoinIcon(
                 modifier = Modifier.fillMaxSize(0.68f)
             )
         }
+    }
+}
+
+/**
+ * BoxIcon Component:
+ * Clean square-rounded container with background, border, and centered icon
+ * inspired by modern Boxicons design.
+ */
+@Composable
+fun BoxIcon(
+    icon: ImageVector,
+    contentDescription: String? = null,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 36.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 20.dp,
+    boxColor: Color = Slate800,
+    iconColor: Color = EcoEmerald400,
+    borderColor: Color = CardBorderBright,
+    cornerRadius: androidx.compose.ui.unit.Dp = 10.dp
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(boxColor)
+            .border(1.dp, borderColor, RoundedCornerShape(cornerRadius)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = iconColor,
+            modifier = Modifier.size(iconSize)
+        )
     }
 }
 
@@ -832,4 +873,703 @@ fun Image3PickupLiveCard(
         }
     }
 }
+
+/**
+ * Modern Floating Bottom Navigation Bar with Center Elevated Scanner FAB
+ * Matches Image 1, Image 2, and Image 3 navigation docks.
+ */
+@Composable
+fun EcoFloatingBottomBar(
+    currentRoute: String?,
+    role: String?,
+    onNavigate: (String) -> Unit,
+    onCenterScanClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Transparent)
+    ) {
+        // Bottom Dock Surface
+        Surface(
+            color = Slate950,
+            tonalElevation = 10.dp,
+            shadowElevation = 16.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .align(Alignment.BottomCenter)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Item 1: Home
+                BottomNavIconItem(
+                    label = "Home",
+                    icon = Icons.Default.Home,
+                    isSelected = currentRoute == "user_home" || currentRoute == "agent_dashboard" || currentRoute == "company_dashboard" || currentRoute == "admin_dashboard",
+                    onClick = {
+                        val homeRoute = when (role) {
+                            "agent" -> "agent_dashboard"
+                            "company" -> "company_dashboard"
+                            "admin" -> "admin_dashboard"
+                            else -> "user_home"
+                        }
+                        onNavigate(homeRoute)
+                    }
+                )
+
+                // Item 2: Virtual Bin / Search / Operations
+                BottomNavIconItem(
+                    label = when (role) {
+                        "company" -> "Orders"
+                        "agent" -> "Pickups"
+                        else -> "Virtual Bin"
+                    },
+                    icon = when (role) {
+                        "company" -> Icons.Default.Inventory
+                        "agent" -> Icons.Default.LocalShipping
+                        else -> Icons.Default.DeleteOutline
+                    },
+                    isSelected = currentRoute == "virtual_bin",
+                    onClick = {
+                        val route = when (role) {
+                            "agent" -> "agent_dashboard"
+                            "company" -> "company_dashboard"
+                            else -> "virtual_bin"
+                        }
+                        onNavigate(route)
+                    }
+                )
+
+                // Spacer for the center elevated floating button
+                Spacer(modifier = Modifier.width(56.dp))
+
+                // Item 4: Wallet / Rewards / Store
+                BottomNavIconItem(
+                    label = when (role) {
+                        "company" -> "Godown"
+                        "admin" -> "Gov"
+                        else -> "Wallet"
+                    },
+                    icon = when (role) {
+                        "admin" -> Icons.Default.AdminPanelSettings
+                        "company" -> Icons.Default.Storefront
+                        else -> Icons.Default.AccountBalanceWallet
+                    },
+                    isSelected = currentRoute == "leaf_coins" || currentRoute == "marketplace",
+                    onClick = {
+                        val route = when (role) {
+                            "admin" -> "admin_dashboard"
+                            "company" -> "marketplace"
+                            else -> "leaf_coins"
+                        }
+                        onNavigate(route)
+                    }
+                )
+
+                // Item 5: Profile
+                BottomNavIconItem(
+                    label = "Profile",
+                    icon = Icons.Default.Person,
+                    isSelected = currentRoute == "profile",
+                    onClick = { onNavigate("profile") }
+                )
+            }
+        }
+
+        // Center Elevated Floating Scanner Button (FAB)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-14).dp)
+                .size(62.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF22C55E),
+                            Color(0xFF16A34A),
+                            Color(0xFF15803D)
+                        )
+                    )
+                )
+                .border(3.dp, Slate950, CircleShape)
+                .clickable { onCenterScanClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.QrCodeScanner,
+                contentDescription = "AI Scanner",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomNavIconItem(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (isSelected) EcoEmerald400 else Slate400,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = if (isSelected) EcoEmerald400 else Slate400,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+        )
+    }
+}
+
+/**
+ * Premium Liquid Glass UI Card Container:
+ * Translucent frosted glass effect with dual-layer specular highlight border,
+ * fluid depth, and water-refractive backdrop shimmer.
+ */
+@Composable
+fun LiquidGlassCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: androidx.compose.ui.unit.Dp = 18.dp,
+    highlightColor: Color = EcoEmerald400,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        color = Slate900.copy(alpha = 0.72f),
+        shape = RoundedCornerShape(cornerRadius),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.25.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.40f),
+                    highlightColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.08f)
+                )
+            )
+        ),
+        shadowElevation = 8.dp,
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.05f),
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.35f)
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+/**
+ * 3D Flippable Voucher Card Model:
+ * Realistic interactive physical voucher card. Tapping flips the card 180 degrees
+ * in 3D perspective to reveal the digital security barcode, claim pin, and terms.
+ */
+@Composable
+fun FlippableVoucherCard(
+    voucher: EcoVoucher,
+    modifier: Modifier = Modifier,
+    onRedeemClick: (() -> Unit)? = null
+) {
+    var isFlipped by remember { mutableStateOf(false) }
+    val rotation by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "voucherCardFlip"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(230.dp)
+            .graphicsLayer {
+                rotationY = rotation
+                cameraDistance = 14f * density
+            }
+            .clickable { isFlipped = !isFlipped }
+    ) {
+        if (rotation <= 90f) {
+            // FRONT OF THE VOUCHER CARD
+            LiquidGlassCard(
+                modifier = Modifier.fillMaxSize(),
+                cornerRadius = 18.dp,
+                highlightColor = LeafCoinGold
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BoxIcon(
+                            icon = Icons.Default.CardGiftcard,
+                            boxColor = LeafCoinGold.copy(alpha = 0.15f),
+                            iconColor = LeafCoinGold,
+                            size = 36.dp,
+                            iconSize = 20.dp
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = voucher.brandName,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "OFFICIAL PARTNER VOUCHER",
+                                fontSize = 9.sp,
+                                color = LeafCoinGold,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Coin Cost Badge with Center Leaf Motif
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LeafCoinGold.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            EcoCoinIcon(size = 18.dp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "${voucher.coinCost} Coins",
+                                color = LeafCoinGold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Voucher Title & Value
+                Text(
+                    text = voucher.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = "Worth ₹${voucher.discountValue.toInt()} Cash Discount on Zero-Waste Essentials",
+                    color = EcoEmerald400,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Tap to flip prompt chip
+                    Surface(
+                        color = Slate800.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.FlipCameraAndroid, null, tint = Slate300, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Tap to Flip Barcode ↺", fontSize = 10.sp, color = Slate300, fontWeight = FontWeight.Medium)
+                        }
+                    }
+
+                    if (onRedeemClick != null) {
+                        Button(
+                            onClick = onRedeemClick,
+                            colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text("Claim Voucher", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        } else {
+            // BACK OF THE VOUCHER CARD (Mirrored 180 degrees so text reads properly)
+            Surface(
+                color = Slate950,
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.25.dp, TechBlue.copy(alpha = 0.5f)),
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { rotationY = 180f }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "SECURITY AUTHENTICATED",
+                            color = TechBlue,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        StatusBadge(text = "VALID 6 MONTHS", color = EcoEmerald400)
+                    }
+
+                    // Barcode Canvas Simulation
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+                            var x = 0f
+                            val strokeWidths = listOf(2f, 4f, 1f, 3f, 5f, 2f, 1f, 4f, 2f, 3f, 6f, 2f, 1f, 3f, 5f)
+                            var idx = 0
+                            while (x < w - 8f) {
+                                val barW = strokeWidths[idx % strokeWidths.size]
+                                drawLine(
+                                    color = Color.Black,
+                                    start = androidx.compose.ui.geometry.Offset(x, 0f),
+                                    end = androidx.compose.ui.geometry.Offset(x, h),
+                                    strokeWidth = barW
+                                )
+                                x += barW + 3f
+                                idx++
+                            }
+                        }
+                    }
+
+                    // Security Code
+                    Text(
+                        text = "VOUCHER PIN: ECO-${voucher.id.take(8).uppercase()}",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text(
+                        text = voucher.description,
+                        color = Slate400,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("10 Coins = ₹1 Value", fontSize = 10.sp, color = LeafCoinGold)
+                        Text("Tap to Flip Back ↻", fontSize = 10.sp, color = Slate400)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 3D Style Animated Character Mascot Hero:
+ * Stylized glossy 3D eco guardian mascot with dynamic floating & pulse animation.
+ */
+@Composable
+fun AnimatedCharacterHero(
+    title: String = "Eco Hero",
+    subtitle: String = "Protecting Earth",
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "charFloat")
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "charFloatOffset"
+    )
+
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "charGlowAlpha"
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF064E3B).copy(alpha = 0.85f),
+                        Color(0xFF0F172A).copy(alpha = 0.95f)
+                    )
+                )
+            )
+            .border(
+                1.5.dp,
+                Brush.horizontalGradient(listOf(EcoEmerald400, TechBlue.copy(alpha = 0.3f))),
+                RoundedCornerShape(20.dp)
+            )
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 3D Animated Character Avatar Orb
+        Box(
+            modifier = Modifier
+                .offset(y = floatOffset.dp)
+                .size(68.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF34D399),
+                            Color(0xFF059669),
+                            Color(0xFF064E3B)
+                        )
+                    )
+                )
+                .border(2.dp, Color.White.copy(alpha = glowAlpha), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            // Inner 3D Character Features (Stylized Eco Mascot)
+            Icon(
+                imageVector = Icons.Default.SmartToy,
+                contentDescription = "3D Eco Mascot",
+                tint = Color.White,
+                modifier = Modifier.size(38.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                StatusBadge(text = "3D AI MASCOT", color = EcoEmerald400)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Slate300,
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
+    }
+}
+
+/**
+ * KYC Proof Document Viewer Dialog:
+ * Allows Super Admin to inspect full high-resolution uploaded ID/Vehicle proof photos
+ * with direct inline approval ("Accept KYC ✓") and rejection buttons.
+ */
+@Composable
+fun ProofViewerDialog(
+    profile: Profile,
+    onDismiss: () -> Unit,
+    onApprove: () -> Unit,
+    onReject: () -> Unit
+) {
+    val proofUrl = profile.kycDocumentUrl
+        ?: if (profile.role == "agent") "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800"
+        else "https://images.unsplash.com/photo-1554415707-9e49fe74a659?w=800"
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Slate900,
+        titleContentColor = Color.White,
+        textContentColor = Slate300,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "KYC Proof Document",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        text = "${profile.fullName} (@${profile.username ?: profile.mobile})",
+                        color = Slate400,
+                        fontSize = 12.sp
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, null, tint = Color.White)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // High-Res Image Display Container
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.Black)
+                        .border(1.5.dp, CardBorderBright, RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = proofUrl,
+                        contentDescription = "Uploaded Proof Document",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Document Metadata Card
+                Surface(
+                    color = Slate800,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Document Type:", fontSize = 11.sp, color = Slate400)
+                            Text(profile.kycDocumentType?.uppercase() ?: "GOVERNMENT ID", fontSize = 11.sp, color = TechBlue, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Document Number:", fontSize = 11.sp, color = Slate400)
+                            Text(profile.kycDocumentNumber ?: "ID-9081-KRL-2026", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Assigned Role:", fontSize = 11.sp, color = Slate400)
+                            Text(profile.role.uppercase(), fontSize = 11.sp, color = EcoEmerald400, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Current KYC Status:", fontSize = 11.sp, color = Slate400)
+                            Text(profile.kycStatus.uppercase(), fontSize = 11.sp, color = LeafCoinGold, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "🔒 Privacy Protection: Upon approval, sensitive proof documents are purged from storage.",
+                    color = Slate400,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onApprove,
+                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Accept & Approve KYC ✓", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = onReject,
+                colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Cancel, null, tint = CoralRed, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Reject with Reason", color = CoralRed, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
+}
+
+
 

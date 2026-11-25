@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import org.ecovision.app.data.SessionManager
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoHeader
+import org.ecovision.app.ui.components.EcoFloatingBottomBar
 import org.ecovision.app.ui.navigation.Screen
 import org.ecovision.app.ui.screens.admin.AdminDashboardScreen
 import org.ecovision.app.ui.screens.agent.AgentDashboardScreen
@@ -97,60 +98,26 @@ fun MainAppHost() {
         },
         bottomBar = {
             if (isNavBarVisible) {
-                NavigationBar(
-                    containerColor = Slate950,
-                    contentColor = Color.White,
-                    tonalElevation = 8.dp
-                ) {
-                    val items = when (profile?.role) {
-                        "agent" -> listOf(
-                            BottomNavItem("Collection", Screen.AgentDashboard.route, Icons.Default.LocalShipping),
-                            BottomNavItem("Profile", Screen.Profile.route, Icons.Default.Person)
-                        )
-                        "company" -> listOf(
-                            BottomNavItem("Godown Feed", Screen.CompanyDashboard.route, Icons.Default.Inventory),
-                            BottomNavItem("Profile", Screen.Profile.route, Icons.Default.Person)
-                        )
-                        "admin" -> listOf(
-                            BottomNavItem("Governance", Screen.AdminDashboard.route, Icons.Default.AdminPanelSettings),
-                            BottomNavItem("Profile", Screen.Profile.route, Icons.Default.Person)
-                        )
-                        else -> listOf(
-                            BottomNavItem("Home", Screen.UserHome.route, Icons.Default.Home),
-                            BottomNavItem("Scan", Screen.AiScan.route, Icons.Default.CameraAlt),
-                            BottomNavItem("Bin", Screen.VirtualBin.route, Icons.Default.DeleteOutline),
-                            BottomNavItem("Store", Screen.Marketplace.route, Icons.Default.Storefront),
-                            BottomNavItem("Wallet", Screen.Wallet.route, Icons.Default.AccountBalanceWallet)
-                        )
-                    }
-
-                    for (item in items) {
-                        val isSelected = currentRoute == item.route
-                        NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            selected = isSelected,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Slate950,
-                                selectedTextColor = EcoEmerald400,
-                                indicatorColor = EcoEmerald500,
-                                unselectedIconColor = Slate400,
-                                unselectedTextColor = Slate400
-                            ),
-                            onClick = {
-                                if (currentRoute != item.route) {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                EcoFloatingBottomBar(
+                    currentRoute = currentRoute,
+                    role = profile?.role,
+                    onNavigate = { targetRoute ->
+                        if (currentRoute != targetRoute) {
+                            navController.navigate(targetRoute) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
                                 }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
+                        }
+                    },
+                    onCenterScanClick = {
+                        if (currentRoute != Screen.AiScan.route) {
+                            navController.navigate(Screen.AiScan.route)
+                        }
                     }
-                }
+                )
             }
         }
     ) { paddingValues ->

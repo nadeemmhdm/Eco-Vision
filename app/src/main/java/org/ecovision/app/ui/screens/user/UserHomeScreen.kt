@@ -299,6 +299,12 @@ fun UserHomeScreen(
                     }
                 }
 
+                // 3D Style Mascot Hero Banner
+                AnimatedCharacterHero(
+                    title = "Leafy AI Mascot",
+                    subtitle = "Scan your waste, earn coins, and request verified doorstep agent collection."
+                )
+
                 // "Recycle Again" Quick Items (Image 2)
                 Text(
                     text = "Recycle Again",

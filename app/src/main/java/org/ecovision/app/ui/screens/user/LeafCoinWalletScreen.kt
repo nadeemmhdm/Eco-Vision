@@ -33,6 +33,8 @@ import org.ecovision.app.ui.components.EcoButton
 import org.ecovision.app.ui.components.EcoCoinIcon
 import org.ecovision.app.ui.components.GlassCard
 import org.ecovision.app.ui.components.StatusBadge
+import org.ecovision.app.ui.components.FlippableVoucherCard
+import org.ecovision.app.ui.components.LiquidGlassCard
 import java.util.Locale
 import java.util.UUID
 
@@ -213,97 +215,13 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
                 ) {
                     items(availableVouchers) { voucher ->
                         val canAfford = userCoins >= voucher.coinCost
-                        val rupeeWorth = voucher.coinCost / 10.0
-                        Surface(
-                            color = Slate850,
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                            modifier = Modifier
-                                .width(240.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                        ) {
-                            Column {
-                                if (voucher.imageUrl != null) {
-                                    AsyncImage(
-                                        model = voucher.imageUrl,
-                                        contentDescription = voucher.title,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(115.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = EcoEmerald500.copy(alpha = 0.2f)
-                                    ) {
-                                        Text(
-                                            text = voucher.brandName,
-                                            color = EcoEmerald400,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = voucher.title,
-                                        color = Color.White,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 2
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = voucher.description ?: "Valid on zero-waste partner items.",
-                                        color = Slate400,
-                                        fontSize = 11.sp,
-                                        maxLines = 2
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            EcoCoinIcon(size = 16.dp)
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Column {
-                                                Text(
-                                                    text = "${voucher.coinCost} Coins",
-                                                    color = LeafCoinGold,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp
-                                                )
-                                                Text(
-                                                    text = "(₹${String.format(Locale.US, "%.0f", rupeeWorth)} value)",
-                                                    color = Slate400,
-                                                    fontSize = 10.sp
-                                                )
-                                            }
-                                        }
-                                        Button(
-                                            enabled = canAfford,
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = EcoEmerald600,
-                                                disabledContainerColor = Slate800
-                                            ),
-                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                            shape = RoundedCornerShape(8.dp),
-                                            onClick = { selectedVoucherForRedeem = voucher }
-                                        ) {
-                                            Text(
-                                                text = if (canAfford) "Redeem" else "Need ${voucher.coinCost - userCoins}",
-                                                fontSize = 11.sp,
-                                                color = if (canAfford) Color.White else Slate500
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        FlippableVoucherCard(
+                            voucher = voucher,
+                            modifier = Modifier.width(280.dp),
+                            onRedeemClick = if (canAfford) {
+                                { selectedVoucherForRedeem = voucher }
+                            } else null
+                        )
                     }
                 }
             }

@@ -4,10 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -26,9 +29,7 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
-import org.ecovision.app.ui.components.EcoButton
-import org.ecovision.app.ui.components.GlassCard
-import org.ecovision.app.ui.components.StatusBadge
+import org.ecovision.app.ui.components.*
 import java.util.UUID
 
 @Composable
@@ -46,7 +47,23 @@ fun AdminDashboardScreen() {
     var isMaintenanceMode by remember { mutableStateOf(settings.maintenanceMode) }
     var downtimeNotice by remember { mutableStateOf(settings.maintenanceNotice) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
-    var userFilter by remember { mutableStateOf("all") } // all, pending, agent, company, user
+
+    // Multi-page Tab Navigation State
+    var currentTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf(
+        "KYC Verification" to Icons.Default.VerifiedUser,
+        "User Governance" to Icons.Default.People,
+        "Voucher Studio" to Icons.Default.CardGiftcard,
+        "Cash Redeems" to Icons.Default.Payments,
+        "Fleet & System" to Icons.Default.Tune
+    )
+
+    // User Governance & KYC Sub-Filters
+    var userFilter by remember { mutableStateOf("all") }
+    var kycFilter by remember { mutableStateOf("pending") }
+
+    // Proof Document Viewer State
+    var proofProfileToView by remember { mutableStateOf<Profile?>(null) }
 
     // Rejection Dialog State
     var showRejectKycDialog by remember { mutableStateOf(false) }
@@ -61,7 +78,6 @@ fun AdminDashboardScreen() {
     var vDesc by remember { mutableStateOf("") }
     var vImageUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1542838132-92c53300491e?w=400") }
     var vCoinCost by remember { mutableStateOf("100") }
-    var vDiscountVal by remember { mutableStateOf("10") }
 
     // Fulfill Voucher Dialog State
     var showFulfillVoucherDialog by remember { mutableStateOf(false) }
@@ -84,14 +100,9 @@ fun AdminDashboardScreen() {
         refresh()
     }
 
-    val pendingKycCount = profiles.count { it.kycStatus == "pending" }
-    val filteredProfiles = when (userFilter) {
-        "pending" -> profiles.filter { it.kycStatus == "pending" }
-        "agent" -> profiles.filter { it.role == "agent" }
-        "company" -> profiles.filter { it.role == "company" }
-        "user" -> profiles.filter { it.role == "user" }
-        else -> profiles
-    }
+    val pendingKycProfiles = profiles.filter { it.kycStatus != "verified" }
+    val pendingCashCount = cashRedemptions.count { it.status == "waitlist" || it.status == "pending" }
+    val pendingVoucherCount = voucherRedemptions.count { it.status == "waitlist" || it.status == "pending" }
 
     LazyColumn(
         modifier = Modifier
@@ -100,54 +111,75 @@ fun AdminDashboardScreen() {
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // ==========================================
+        // 1. TOP 3D MASCOT HERO & LIQUID GLASS HEADER
+        // ==========================================
         item {
             Spacer(modifier = Modifier.height(4.dp))
+            AnimatedCharacterHero(
+                title = "Super Admin Hub",
+                subtitle = "Simplified Multi-Desk Governance • Real-Time Verifications"
+            )
+        }
 
-            // Admin Header
-            GlassCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Super Admin Governance",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Platform Moderation, KYC Desks, Vouchers & Rates",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate400
-                        )
-                    }
-                    StatusBadge(text = "👑 SUPER ADMIN", color = Color(0xFFF472B6))
-                }
+        // ==========================================
+        // 2. HORIZONTAL TAB NAVIGATION BAR (5 SUB-PAGES)
+        // ==========================================
+        item {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(tabs.size) { idx ->
+                    val (label, icon) = tabs[idx]
+                    val isSelected = currentTab == idx
 
-                Spacer(modifier = Modifier.height(14.dp))
+                    Surface(
+                        color = if (isSelected) EcoEmerald600 else Slate850,
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isSelected) EcoEmerald400 else CardBorder
+                        ),
+                        modifier = Modifier.clickable { currentTab = idx }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                tint = if (isSelected) Color.White else Slate400,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                color = if (isSelected) Color.White else Slate300,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
 
-                // Stats Summary
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text("Total Users", fontSize = 11.sp, color = Slate400)
-                        Text("${profiles.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    Column {
-                        Text("Pending KYC", fontSize = 11.sp, color = Slate400)
-                        Text("$pendingKycCount", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (pendingKycCount > 0) LeafCoinGold else EcoEmerald400)
-                    }
-                    Column {
-                        Text("Active Vouchers", fontSize = 11.sp, color = Slate400)
-                        Text("${vouchers.size}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = EcoEmerald400)
-                    }
-                    Column {
-                        Text("System Mode", fontSize = 11.sp, color = Slate400)
-                        Text(if (isMaintenanceMode) "MAINTENANCE" else "OPERATIONAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isMaintenanceMode) CoralRed else EcoEmerald400)
+                            // Notification dot for pending tasks
+                            if (idx == 0 && pendingKycProfiles.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(LeafCoinGold)
+                                )
+                            } else if (idx == 3 && pendingCashCount > 0) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(LeafCoinGold)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -159,229 +191,334 @@ fun AdminDashboardScreen() {
             }
         }
 
-        // ==========================================
-        // MODULE 1: REAL USER MODERATION & KYC PROOF DESK
-        // ==========================================
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "User Moderation & KYC Verification Desk",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Approve proof of upload, manage status (Active / Blocked / Banned)",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Filter Tabs
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val filters = listOf(
-                    "all" to "All Users (${profiles.size})",
-                    "pending" to "Pending KYC ($pendingKycCount)",
-                    "agent" to "Agents (${profiles.count { it.role == "agent" }})",
-                    "company" to "Companies (${profiles.count { it.role == "company" }})",
-                    "user" to "Citizens (${profiles.count { it.role == "user" }})"
-                )
-                items(filters) { (key, label) ->
-                    val isSel = userFilter == key
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSel) EcoEmerald600 else Slate800)
-                            .clickable { userFilter = key }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
+        // =========================================================================
+        // TAB 0: KYC VERIFICATION DESK (SIMPLIFIED, FOCUSED)
+        // =========================================================================
+        if (currentTab == 0) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
                         Text(
-                            text = label,
+                            text = "Identity Verification Desk",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${pendingKycProfiles.size} accounts awaiting approval. Review proof and approve instantly.",
                             fontSize = 11.sp,
-                            color = if (isSel) Color.White else Slate300,
-                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium
+                            color = Slate400
                         )
                     }
                 }
-            }
-        }
 
-        items(filteredProfiles) { p ->
-            Surface(
-                color = Slate850,
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (p.kycStatus == "pending") LeafCoinGold.copy(alpha = 0.5f) else CardBorder
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Slate700),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = p.fullName.take(1).uppercase(),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = p.fullName,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "@${p.username ?: p.mobile.takeLast(4)} · ${p.mobile}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Slate400
-                                )
-                            }
-                        }
+                Spacer(modifier = Modifier.height(10.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            StatusBadge(
-                                text = p.role.uppercase(),
-                                color = when (p.role) {
-                                    "admin" -> Color(0xFFF472B6)
-                                    "agent" -> LeafCoinGold
-                                    "company" -> Color(0xFF60A5FA)
-                                    else -> EcoEmerald400
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            StatusBadge(
-                                text = p.kycStatus.uppercase(),
-                                color = if (p.kycStatus == "verified") EcoEmerald400 else if (p.kycStatus == "rejected") CoralRed else LeafCoinGold
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(text = "📍 Address: ${p.defaultAddress ?: "Not specified"} (Pincode: ${p.pincode ?: "682001"})", color = Slate300, fontSize = 12.sp)
-
-                    // Upload Proof Section
-                    Surface(
-                        color = Slate800,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                // Sub-filter: Pending vs All vs Verified
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val kycOptions = listOf("pending" to "Needs Approval", "verified" to "Approved", "all" to "All")
+                    for ((k, label) in kycOptions) {
+                        val isSel = kycFilter == k
+                        Surface(
+                            color = if (isSel) EcoEmerald700 else Slate800,
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSel) EcoEmerald400 else CardBorder),
+                            modifier = Modifier.clickable { kycFilter = k }
+                        ) {
                             Text(
-                                text = "📑 Uploaded Proof of Identity / KYC:",
+                                text = label,
                                 fontSize = 11.sp,
-                                color = Slate400,
-                                fontWeight = FontWeight.Bold
+                                color = if (isSel) Color.White else Slate400,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Document: ${p.kycDocumentType?.uppercase() ?: "Standard ID"} · Number: ${p.kycDocumentNumber ?: "PENDING_SUBMISSION"}",
-                                fontSize = 12.sp,
-                                color = TechBlue,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        }
+                    }
+                }
+            }
 
-                            if (p.role == "agent") {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    AsyncImage(
-                                        model = "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=300",
-                                        contentDescription = "Vehicle Proof",
-                                        modifier = Modifier
-                                            .size(54.dp)
-                                            .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
+            val targetKycList = when (kycFilter) {
+                "pending" -> profiles.filter { it.kycStatus != "verified" }
+                "verified" -> profiles.filter { it.kycStatus == "verified" }
+                else -> profiles
+            }
+
+            if (targetKycList.isEmpty()) {
+                item {
+                    LiquidGlassCard {
+                        Text(
+                            text = "🎉 All verification requests have been processed! No pending KYC.",
+                            color = Slate300,
+                            fontSize = 13.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            } else {
+                items(targetKycList) { p ->
+                    LiquidGlassCard(
+                        highlightColor = if (p.kycStatus == "verified") EcoEmerald400 else LeafCoinGold
+                    ) {
+                        // User Header Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(EcoEmerald600.copy(alpha = 0.25f))
+                                        .border(1.dp, EcoEmerald400, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = p.fullName.take(1).uppercase(),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(text = "Vehicle Matching Proof", style = MaterialTheme.typography.labelSmall, color = Slate400)
-                                        Text(text = "Registration: KL-07-CD-5678", style = MaterialTheme.typography.bodySmall, color = LeafCoinGold, fontWeight = FontWeight.Bold)
-                                        Text(text = "Type: Commercial Multi-Zone Collector Van", fontSize = 10.sp, color = Slate300)
-                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = p.fullName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "@${p.username ?: p.mobile.takeLast(4)} • ${p.mobile}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Slate400
+                                    )
+                                }
+                            }
+
+                            Column(horizontalAlignment = Alignment.End) {
+                                StatusBadge(text = p.role.uppercase(), color = TechBlue)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                StatusBadge(
+                                    text = p.kycStatus.uppercase(),
+                                    color = if (p.kycStatus == "verified") EcoEmerald400 else if (p.kycStatus == "rejected") CoralRed else LeafCoinGold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Document Specs Box
+                        Surface(
+                            color = Slate800.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "ID: ${p.kycDocumentType?.uppercase() ?: "GOVERNMENT ID"} • ${p.kycDocumentNumber ?: "DOC-2026-SUBMITTED"}",
+                                        color = TechBlue,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = "District: ${p.district ?: "Malappuram"}, Kerala",
+                                        color = Slate400,
+                                        fontSize = 11.sp
+                                    )
+                                }
+
+                                // Prominent "View Uploaded Proof" Button
+                                Button(
+                                    onClick = { proofProfileToView = p },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Visibility, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("View Proof", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
-                    }
 
-                    // Moderation & Action Controls
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (p.kycStatus == "pending" || p.kycStatus == "rejected") {
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Actions Row: Accept Button (Always Available), Reject Button, Block Button
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Primary ACCEPT & VERIFY KYC Button
                             Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(vertical = 6.dp),
                                 onClick = {
                                     scope.launch {
                                         SupabaseClient.updateUserStatus(p.id, "verified")
-                                        statusMessage = "Verified KYC for ${p.fullName}! Proof documents auto-deleted for privacy."
+                                        statusMessage = "✅ Successfully Approved & Verified KYC for ${p.fullName}!"
                                         refresh()
                                     }
-                                }
+                                },
+                                modifier = Modifier.weight(1.3f),
+                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
-                                Text("Approve KYC ✓", color = Slate950, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (p.kycStatus == "verified") "Re-Approve ✓" else "Accept KYC ✓",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
                             }
-                        }
 
-                        if (p.kycStatus == "pending" || p.kycStatus == "verified") {
+                            // REJECT with Reason Button
                             Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = Slate700),
-                                modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(vertical = 6.dp),
                                 onClick = {
                                     userToReject = p
                                     selectedRejectionReason = "Proof image is blurry or low quality"
                                     customRejectionReason = ""
                                     showRejectKycDialog = true
-                                }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
-                                Text("Reject KYC", color = CoralRed, fontSize = 11.sp)
+                                Icon(Icons.Default.Cancel, null, tint = CoralRed, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Reject", color = CoralRed, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            }
+
+                            // BLOCK BoxIcon
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        SupabaseClient.updateUserStatus(p.id, "blocked")
+                                        statusMessage = "Blocked account for ${p.fullName}."
+                                        refresh()
+                                    }
+                                },
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                BoxIcon(
+                                    icon = Icons.Default.Block,
+                                    boxColor = CoralRed.copy(alpha = 0.15f),
+                                    iconColor = CoralRed,
+                                    size = 36.dp,
+                                    iconSize = 18.dp
+                                )
                             }
                         }
+                    }
+                }
+            }
+        }
 
-                        // Block/Ban Account Action
+        // =========================================================================
+        // TAB 1: USER GOVERNANCE (MEMBERS & MODERATION)
+        // =========================================================================
+        if (currentTab == 1) {
+            item {
+                Text(
+                    text = "Platform Users & Account Governance",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Manage citizens, pickup agents, and recycling companies.",
+                    fontSize = 11.sp,
+                    color = Slate400
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Role Selector Chips
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val roles = listOf("all" to "All (${profiles.size})", "user" to "Citizens", "agent" to "Agents", "company" to "Companies", "admin" to "Admins")
+                    items(roles) { (rKey, rLabel) ->
+                        val isSel = userFilter == rKey
+                        Surface(
+                            color = if (isSel) TechBlue else Slate800,
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSel) Color.White else CardBorder),
+                            modifier = Modifier.clickable { userFilter = rKey }
+                        ) {
+                            Text(
+                                text = rLabel,
+                                fontSize = 11.sp,
+                                color = if (isSel) Color.White else Slate400,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            val targetUsers = if (userFilter == "all") profiles else profiles.filter { it.role == userFilter }
+
+            items(targetUsers) { p ->
+                LiquidGlassCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = p.fullName, style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(text = "${p.mobile} • ${p.role.uppercase()} • District: ${p.district ?: "Malappuram"}", color = Slate400, fontSize = 11.sp)
+                        }
+                        StatusBadge(
+                            text = (p.accountStatus ?: "ACTIVE").uppercase(),
+                            color = if (p.accountStatus == "blocked" || p.accountStatus == "banned") CoralRed else EcoEmerald400
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = Slate800),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(vertical = 6.dp),
                             onClick = {
+                                val nextStatus = if (p.accountStatus == "blocked") "active" else "blocked"
                                 scope.launch {
-                                    SupabaseClient.updateUserStatus(p.id, "blocked")
-                                    statusMessage = "Blocked account for ${p.fullName}."
+                                    SupabaseClient.updateUserStatus(p.id, nextStatus)
+                                    statusMessage = "Updated status for ${p.fullName} to $nextStatus"
                                     refresh()
                                 }
-                            }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Slate800),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Block 🛑", color = Slate300, fontSize = 11.sp)
+                            Text(
+                                text = if (p.accountStatus == "blocked") "Unblock" else "Block",
+                                color = if (p.accountStatus == "blocked") EcoEmerald400 else CoralRed,
+                                fontSize = 11.sp
+                            )
                         }
 
-                        IconButton(
+                        Button(
                             onClick = {
                                 scope.launch {
                                     SupabaseClient.deleteProfile(p.id)
@@ -389,332 +526,110 @@ fun AdminDashboardScreen() {
                                     refresh()
                                 }
                             },
-                            modifier = Modifier.size(34.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = CoralRed.copy(alpha = 0.2f)),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = CoralRed, modifier = Modifier.size(18.dp))
+                            Text("Delete", color = CoralRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
         }
 
-        // ==========================================
-        // MODULE 2: ADMIN VOUCHERS MANAGEMENT
-        // ==========================================
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "🎁 Admin Eco Vouchers Store Management",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Create and manage vouchers redeemable with Coins",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-                IconButton(onClick = { showCreateVoucherDialog = true }) {
-                    Icon(Icons.Default.AddCircle, contentDescription = "Add Voucher", tint = EcoEmerald400)
-                }
-            }
-        }
-
-        items(vouchers) { v ->
-            Surface(
-                color = Slate850,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (v.imageUrl != null) {
-                        AsyncImage(
-                            model = v.imageUrl,
-                            contentDescription = v.title,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(v.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("${v.brandName} · ${v.description ?: ""}", color = Slate400, fontSize = 11.sp, maxLines = 1)
-                        Text("🪙 ${v.coinCost} Coins (Value: ₹${v.discountValue.toInt()})", color = LeafCoinGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    StatusBadge(text = "ACTIVE", color = EcoEmerald400)
-                }
-            }
-        }
-
-        // ==========================================
-        // MODULE 3: PLATFORM MAINTENANCE CONTROL
-        // ==========================================
-        item {
-            GlassCard(borderColor = if (isMaintenanceMode) CoralRed else CardBorder) {
+        // =========================================================================
+        // TAB 2: VOUCHER STUDIO & FLIPPABLE CARDS
+        // =========================================================================
+        if (currentTab == 2) {
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column {
                         Text(
-                            text = "Platform Maintenance Mode",
+                            text = "Voucher Studio & Card Vault",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (isMaintenanceMode) "Active: Non-admin users see maintenance screen" else "Inactive: Platform live and operating normally",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isMaintenanceMode) CoralRed else EcoEmerald400
+                            text = "Tap any card below to preview the 3D flippable barcode model.",
+                            fontSize = 11.sp,
+                            color = Slate400
                         )
                     }
-                    Switch(
-                        checked = isMaintenanceMode,
-                        onCheckedChange = { checked ->
-                            isMaintenanceMode = checked
-                            scope.launch {
-                                val updated = settings.copy(maintenanceMode = checked, maintenanceNotice = downtimeNotice)
-                                SupabaseClient.updatePlatformSettings(updated)
-                                SessionManager.updateSettings(updated)
-                                statusMessage = if (checked) "Maintenance Mode enabled!" else "Platform reopened to all users!"
-                            }
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = CoralRed,
-                            checkedTrackColor = CoralRed.copy(alpha = 0.3f)
-                        )
-                    )
+                    Button(
+                        onClick = { showCreateVoucherDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("New Voucher", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
+            }
 
-                if (isMaintenanceMode) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = downtimeNotice,
-                        onValueChange = { downtimeNotice = it },
-                        label = { Text("Downtime Notice") },
+            if (vouchers.isEmpty()) {
+                item {
+                    LiquidGlassCard {
+                        Text(
+                            text = "No active vouchers. Tap '+ New Voucher' to create your first partner voucher.",
+                            color = Slate400,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                }
+            } else {
+                items(vouchers) { v ->
+                    FlippableVoucherCard(
+                        voucher = v,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
-        }
 
-        // ==========================================
-        // MODULE 4: DYNAMIC PRICING SLABS ENGINE
-        // ==========================================
-        item {
-            Text(
-                text = "Weight-Based Pricing Slabs Engine",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Configures dynamic per-kg rates for each material weight-tier.",
-                fontSize = 11.sp,
-                color = Slate400
-            )
-        }
+            // User Voucher Redemptions Waiting List
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "🎟️ User Voucher Redemptions Waiting List",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Review user voucher claims, enter digital code & push to user wallet/email",
+                    fontSize = 11.sp,
+                    color = Slate400
+                )
+            }
 
-        items(slabs) { slab ->
-            Surface(
-                color = Slate850,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+            if (voucherRedemptions.isEmpty()) {
+                item {
+                    Surface(
+                        color = Slate850,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = "${slab.categoryId.replace("_", " ").uppercase()} · ${slab.tierName}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Range: ${slab.minKg} kg to ${slab.maxKg ?: "Infinity"} kg",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate400
+                            text = "No voucher redemption requests in waiting list.",
+                            color = Slate400,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(14.dp)
                         )
                     }
-                    Text(
-                        text = "₹${slab.ratePerKg}/kg",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = EcoEmerald400,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
-            }
-        }
-
-        // ==========================================
-        // MODULE 4: REAL CASH REDEMPTION QUEUE & SETTLEMENT
-        // ==========================================
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "💳 Cash Redemption & UPI Settlement Desk",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Verify user UPI IDs and mark payouts as completed",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-            }
-        }
-
-        if (cashRedemptions.isEmpty()) {
-            item {
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "No pending cash redemption requests in queue.",
-                        color = Slate400,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
-            }
-        } else {
-            items(cashRedemptions) { red ->
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (red.status == "waitlist") LeafCoinGold.copy(alpha = 0.5f) else CardBorder
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "₹${red.cashAmount.toInt()} · ${red.holderName}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "UPI ID: ${red.upiId} · ${red.coinsAmount} Coins",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TechBlue,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            StatusBadge(
-                                text = if (red.status == "completed") "SETTLED ✓" else "WAITLIST",
-                                color = if (red.status == "completed") EcoEmerald400 else LeafCoinGold
-                            )
-                        }
-
-                        if (red.status != "completed") {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(vertical = 6.dp),
-                                onClick = {
-                                    scope.launch {
-                                        SupabaseClient.updateCashRedemptionStatus(red.id, "completed")
-                                        statusMessage = "Settlement completed for ${red.holderName} (UPI: ${red.upiId})!"
-                                        refresh()
-                                    }
-                                }
-                            ) {
-                                Text("Verify UPI & Mark Settled ✓", color = Slate950, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ==========================================
-        // MODULE 4B: USER VOUCHER REDEMPTION WAITING LIST DESK
-        // ==========================================
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "🎟️ User Voucher Redemptions Waiting List",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Review user voucher claims, enter digital code & push to user wallet/email",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-            }
-        }
-
-        if (voucherRedemptions.isEmpty()) {
-            item {
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "No voucher redemption requests in waiting list.",
-                        color = Slate400,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
-            }
-        } else {
-            items(voucherRedemptions) { red ->
-                val isPending = red.status == "waitlist" || red.status == "pending"
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isPending) LeafCoinGold.copy(alpha = 0.5f) else CardBorder
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+            } else {
+                items(voucherRedemptions) { red ->
+                    val isPending = red.status == "waitlist" || red.status == "pending"
+                    LiquidGlassCard(
+                        highlightColor = if (isPending) LeafCoinGold else EcoEmerald400
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -722,20 +637,26 @@ fun AdminDashboardScreen() {
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "${red.voucherTitle} · ${red.brandName}",
+                                    text = "${red.voucherTitle} • ${red.brandName}",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "User: ${red.userName ?: "Eco User"} (${red.userEmail ?: "No email"}) · ${red.coinCost} Coins",
+                                    text = "User: ${red.userName ?: "Eco User"} (${red.userEmail ?: "No email recorded"})",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = TechBlue,
                                     fontWeight = FontWeight.SemiBold
                                 )
+                                Text(
+                                    text = "Paid: ${red.coinCost} Coins (Worth ₹${red.coinCost / 10})",
+                                    color = LeafCoinGold,
+                                    fontSize = 11.sp
+                                )
                                 if (red.voucherDetails != null) {
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Code: ${red.voucherDetails}",
+                                        text = "Issued Code: ${red.voucherDetails}",
                                         color = EcoEmerald400,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
@@ -751,9 +672,10 @@ fun AdminDashboardScreen() {
                         if (isPending) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Button(
-                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
+                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
                                 modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(vertical = 6.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp),
                                 onClick = {
                                     voucherToFulfill = red
                                     fulfillVoucherCodeInput = "ECO-${red.brandName.take(3).uppercase()}-${(1000..9999).random()}"
@@ -761,7 +683,9 @@ fun AdminDashboardScreen() {
                                     showFulfillVoucherDialog = true
                                 }
                             ) {
-                                Text("Fulfill Voucher & Push Code to User ✉️", color = Slate950, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Icon(Icons.Default.Send, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Issue Code & Push to User Wallet ✉️", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -769,55 +693,41 @@ fun AdminDashboardScreen() {
             }
         }
 
-        // ==========================================
-        // MODULE 5: AGENT VEHICLE CHANGE REQUESTS
-        // ==========================================
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "🚚 Agent Vehicle Change Requests",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Inspect new vehicle plate and photo; photo is auto-deleted upon approval",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-            }
-        }
-
-        if (vehicleChangeRequests.isEmpty()) {
+        // =========================================================================
+        // TAB 3: CASH REDEEMS & UPI SETTLEMENT DESK
+        // =========================================================================
+        if (currentTab == 3) {
             item {
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "No pending vehicle change requests.",
-                        color = Slate400,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
+                Text(
+                    text = "💳 Coin-to-Cash UPI Settlement Desk",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Verify user UPI IDs and approve direct wallet cash payouts (10 Coins = ₹1).",
+                    fontSize = 11.sp,
+                    color = Slate400
+                )
             }
-        } else {
-            items(vehicleChangeRequests) { req ->
-                Surface(
-                    color = Slate850,
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+
+            if (cashRedemptions.isEmpty()) {
+                item {
+                    LiquidGlassCard {
+                        Text(
+                            text = "No pending cash redemption requests in queue.",
+                            color = Slate400,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                }
+            } else {
+                items(cashRedemptions) { red ->
+                    val isPending = red.status != "completed"
+                    LiquidGlassCard(
+                        highlightColor = if (isPending) LeafCoinGold else EcoEmerald400
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -825,64 +735,119 @@ fun AdminDashboardScreen() {
                         ) {
                             Column {
                                 Text(
-                                    text = "New Vehicle: ${req.newVehicleNumber}",
+                                    text = "₹${red.cashAmount.toInt()} • ${red.holderName}",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Previous: ${req.oldVehicleNumber ?: "Not recorded"}",
+                                    text = "UPI ID: ${red.upiId} • ${red.coinsAmount} Coins",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Slate400
+                                    color = TechBlue,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                             StatusBadge(
-                                text = req.status.uppercase(),
-                                color = if (req.status == "approved") EcoEmerald400 else if (req.status == "rejected") CoralRed else LeafCoinGold
+                                text = if (red.status == "completed") "SETTLED ✓" else "WAITLIST",
+                                color = if (red.status == "completed") EcoEmerald400 else LeafCoinGold
                             )
                         }
 
+                        if (isPending) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(
+                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                onClick = {
+                                    scope.launch {
+                                        SupabaseClient.updateCashRedemptionStatus(red.id, "completed")
+                                        statusMessage = "Settlement completed for ${red.holderName} (UPI: ${red.upiId})!"
+                                        refresh()
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Verify UPI & Mark Settled ✓", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // TAB 4: FLEET & SYSTEM SETTINGS
+        // =========================================================================
+        if (currentTab == 4) {
+            // Vehicle Requests
+            item {
+                Text(
+                    text = "🚚 Agent Vehicle Change Requests",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Inspect new vehicle plate and photo; photo is purged upon approval.",
+                    fontSize = 11.sp,
+                    color = Slate400
+                )
+            }
+
+            if (vehicleChangeRequests.isEmpty()) {
+                item {
+                    LiquidGlassCard {
+                        Text(
+                            text = "No pending vehicle change requests.",
+                            color = Slate400,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                }
+            } else {
+                items(vehicleChangeRequests) { req ->
+                    LiquidGlassCard {
+                        Text(text = "New Vehicle: ${req.newVehicleNumber}", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(text = "Previous: ${req.oldVehicleNumber ?: "Not recorded"}", color = Slate400, fontSize = 11.sp)
                         if (req.vehiclePhotoUrl != null) {
                             Spacer(modifier = Modifier.height(8.dp))
                             AsyncImage(
                                 model = req.vehiclePhotoUrl,
                                 contentDescription = "Vehicle Photo",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(130.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
+                                modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Crop
                             )
                         }
 
                         if (req.status == "pending") {
                             Spacer(modifier = Modifier.height(10.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
-                                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
+                                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     onClick = {
                                         scope.launch {
                                             SupabaseClient.reviewVehicleChangeRequest(req.id, req.agentId, req.newVehicleNumber, "approved")
-                                            statusMessage = "Approved vehicle change to ${req.newVehicleNumber}! Photo auto-deleted."
+                                            statusMessage = "Approved vehicle change to ${req.newVehicleNumber}!"
                                             refresh()
                                         }
                                     }
                                 ) {
-                                    Text("Approve & Update ✓", color = Slate950, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("Approve ✓", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
                                 Button(
-                                    colors = ButtonDefaults.buttonColors(containerColor = Slate700),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Slate800),
                                     modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     onClick = {
                                         scope.launch {
-                                            SupabaseClient.reviewVehicleChangeRequest(req.id, req.agentId, req.newVehicleNumber, "rejected", "Vehicle details could not be verified")
-                                            statusMessage = "Rejected vehicle change request."
+                                            SupabaseClient.reviewVehicleChangeRequest(req.id, req.agentId, req.newVehicleNumber, "rejected", "Details mismatch")
+                                            statusMessage = "Rejected vehicle change."
                                             refresh()
                                         }
                                     }
@@ -894,27 +859,104 @@ fun AdminDashboardScreen() {
                     }
                 }
             }
+
+            // Maintenance Switch
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                LiquidGlassCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = "Maintenance Mode Switch", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(text = "Redirect non-admin users to maintenance screen", color = Slate400, fontSize = 11.sp)
+                        }
+                        Switch(
+                            checked = isMaintenanceMode,
+                            onCheckedChange = { chk ->
+                                isMaintenanceMode = chk
+                                scope.launch {
+                                    val updated = settings.copy(maintenanceMode = chk, maintenanceNotice = downtimeNotice)
+                                    SupabaseClient.updatePlatformSettings(updated)
+                                    SessionManager.updateSettings(updated)
+                                    statusMessage = if (chk) "Maintenance mode enabled!" else "Platform reopened to all users!"
+                                }
+                            },
+                            colors = SwitchDefaults.colors(checkedThumbColor = CoralRed, checkedTrackColor = CoralRed.copy(alpha = 0.3f))
+                        )
+                    }
+                }
+            }
+
+            // Dynamic Slabs
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(text = "Dynamic Pricing Slabs Engine", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            items(slabs) { slab ->
+                LiquidGlassCard {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text(text = "${slab.categoryId.replace("_", " ").uppercase()} • ${slab.tierName}", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(text = "Range: ${slab.minKg} kg to ${slab.maxKg ?: "Infinity"} kg", color = Slate400, fontSize = 11.sp)
+                        }
+                        Text(text = "₹${slab.ratePerKg}/kg", color = EcoEmerald400, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
         }
 
         item { Spacer(modifier = Modifier.height(30.dp)) }
     }
 
-    // Create Voucher Dialog
+    // ==========================================
+    // MODAL 1: PROOF DOCUMENT VIEWER DIALOG
+    // ==========================================
+    if (proofProfileToView != null) {
+        val target = proofProfileToView!!
+        ProofViewerDialog(
+            profile = target,
+            onDismiss = { proofProfileToView = null },
+            onApprove = {
+                scope.launch {
+                    SupabaseClient.updateUserStatus(target.id, "verified")
+                    statusMessage = "✅ Successfully Verified KYC for ${target.fullName}!"
+                    proofProfileToView = null
+                    refresh()
+                }
+            },
+            onReject = {
+                userToReject = target
+                selectedRejectionReason = "Proof image is blurry or low quality"
+                customRejectionReason = ""
+                proofProfileToView = null
+                showRejectKycDialog = true
+            }
+        )
+    }
+
+    // ==========================================
+    // MODAL 2: CREATE VOUCHER DIALOG
+    // ==========================================
     if (showCreateVoucherDialog) {
         val calculatedDiscount = (vCoinCost.toIntOrNull() ?: 100) / 10.0
         AlertDialog(
             onDismissRequest = { showCreateVoucherDialog = false },
-            containerColor = Slate850,
+            containerColor = Slate900,
             titleContentColor = Color.White,
             textContentColor = Slate300,
-            title = { Text("Create Partner Voucher for Wallet") },
+            title = { Text("Publish Partner Voucher for Wallet", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = vTitle,
                         onValueChange = { vTitle = it },
-                        label = { Text("Voucher Name *") },
-                        placeholder = { Text("e.g. ₹50 Off Organic Groceries") },
+                        label = { Text("Voucher Title *") },
+                        placeholder = { Text("e.g. ₹50 Off Zero-Waste Groceries") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -929,16 +971,15 @@ fun AdminDashboardScreen() {
                     OutlinedTextField(
                         value = vImageUrl,
                         onValueChange = { vImageUrl = it },
-                        label = { Text("Voucher Image URL *") },
-                        placeholder = { Text("https://...") },
+                        label = { Text("Voucher Image URL") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = vDesc,
                         onValueChange = { vDesc = it },
-                        label = { Text("Description *") },
-                        placeholder = { Text("Terms and valid items...") },
+                        label = { Text("Description & Terms") },
+                        placeholder = { Text("Valid on organic groceries...") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -960,7 +1001,7 @@ fun AdminDashboardScreen() {
             confirmButton = {
                 Button(
                     enabled = vTitle.isNotBlank() && vCoinCost.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
+                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
                     onClick = {
                         showCreateVoucherDialog = false
                         val cost = vCoinCost.toIntOrNull() ?: 100
@@ -980,7 +1021,7 @@ fun AdminDashboardScreen() {
                         }
                     }
                 ) {
-                    Text("Publish Voucher", color = Slate950, fontWeight = FontWeight.Bold)
+                    Text("Publish Voucher", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -991,7 +1032,9 @@ fun AdminDashboardScreen() {
         )
     }
 
-    // Fulfill Voucher Dialog
+    // ==========================================
+    // MODAL 3: FULFILL VOUCHER DIALOG
+    // ==========================================
     if (showFulfillVoucherDialog && voucherToFulfill != null) {
         val req = voucherToFulfill!!
         AlertDialog(
@@ -999,62 +1042,36 @@ fun AdminDashboardScreen() {
                 showFulfillVoucherDialog = false
                 voucherToFulfill = null
             },
-            containerColor = Slate850,
+            containerColor = Slate900,
             titleContentColor = Color.White,
             textContentColor = Slate300,
-            title = {
-                Text("Issue & Push Voucher Code", fontWeight = FontWeight.Bold)
-            },
+            title = { Text("Issue & Push Voucher Code", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text(
-                        text = "User: ${req.userName ?: "Eco User"} (${req.userEmail ?: "No email recorded"})",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        text = "Requested: ${req.voucherTitle} (${req.brandName})",
-                        color = LeafCoinGold,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Coins Paid: ${req.coinCost} Coins (Worth ₹${req.coinCost / 10})",
-                        color = EcoEmerald400,
-                        fontSize = 11.sp
-                    )
+                    Text(text = "User: ${req.userName ?: "Eco User"} (${req.userEmail ?: "No email"})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(text = "Requested: ${req.voucherTitle} (${req.brandName})", color = LeafCoinGold, fontSize = 12.sp)
+                    Text(text = "Coins Paid: ${req.coinCost} Coins (Worth ₹${req.coinCost / 10})", color = EcoEmerald400, fontSize = 11.sp)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedTextField(
                         value = fulfillVoucherCodeInput,
                         onValueChange = { fulfillVoucherCodeInput = it },
                         label = { Text("Voucher Code / Claim PIN *") },
-                        placeholder = { Text("e.g. ECO-GREEN-2026-X88") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-
                     OutlinedTextField(
                         value = fulfillVoucherNotesInput,
                         onValueChange = { fulfillVoucherNotesInput = it },
                         label = { Text("Redemption Instructions / Expiry") },
-                        placeholder = { Text("e.g. Valid on partner store checkout. Expires in 6 months.") },
                         modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Upon submission, details will be pushed to the user's Wallet and emailed to ${req.userEmail ?: "user email"}.",
-                        color = Slate400,
-                        fontSize = 10.sp
                     )
                 }
             },
             confirmButton = {
                 Button(
                     enabled = fulfillVoucherCodeInput.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
+                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
                     onClick = {
                         val fullDetails = if (fulfillVoucherNotesInput.isNotBlank()) {
                             "${fulfillVoucherCodeInput.trim()} | ${fulfillVoucherNotesInput.trim()}"
@@ -1063,16 +1080,14 @@ fun AdminDashboardScreen() {
                         }
                         scope.launch {
                             SupabaseClient.fulfillVoucherRedemption(req.id, fullDetails)
-                            statusMessage = "🎉 Voucher code issued! Pushed to user wallet and sent to ${req.userEmail ?: "user email"}."
+                            statusMessage = "🎉 Voucher code issued! Pushed to user wallet and emailed."
                             refresh()
                             showFulfillVoucherDialog = false
                             voucherToFulfill = null
-                            fulfillVoucherCodeInput = ""
-                            fulfillVoucherNotesInput = ""
                         }
                     }
                 ) {
-                    Text("Submit & Push to User ✉️", color = Slate950, fontWeight = FontWeight.Bold)
+                    Text("Submit & Push to User ✉️", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1086,7 +1101,9 @@ fun AdminDashboardScreen() {
         )
     }
 
-    // Rejection Reason Modal Dialog
+    // ==========================================
+    // MODAL 4: REJECTION REASON DIALOG
+    // ==========================================
     if (showRejectKycDialog && userToReject != null) {
         val u = userToReject!!
         val presetReasons = listOf(
@@ -1099,7 +1116,7 @@ fun AdminDashboardScreen() {
 
         AlertDialog(
             onDismissRequest = { showRejectKycDialog = false },
-            containerColor = Slate850,
+            containerColor = Slate900,
             titleContentColor = Color.White,
             textContentColor = Slate300,
             title = {
@@ -1111,12 +1128,8 @@ fun AdminDashboardScreen() {
             },
             text = {
                 Column {
-                    Text(
-                        text = "Specify the exact rejection reason. The user will see this in their Profile to reapply (Max 5 attempts allowed):",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = "Specify rejection reason (user sees this in Profile to reapply):", fontSize = 11.sp, color = Slate400)
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     presetReasons.forEach { reason ->
                         Row(
@@ -1140,10 +1153,8 @@ fun AdminDashboardScreen() {
                     OutlinedTextField(
                         value = customRejectionReason,
                         onValueChange = { customRejectionReason = it },
-                        label = { Text("Or Type Custom Rejection Reason") },
-                        placeholder = { Text("e.g. Aadhaar QR code is unreadable") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        label = { Text("Or Type Custom Reason") },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
