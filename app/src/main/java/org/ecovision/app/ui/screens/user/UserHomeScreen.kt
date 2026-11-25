@@ -980,7 +980,7 @@ fun UserHomeScreen(
                                     binItemIds = emptyList()
                                 )
                                 if (created != null) {
-                                    activePickup = created
+                                    activePickups = listOf(created) + activePickups
                                 }
                                 loadUserData()
                                 showSchedulePickupModal = false
