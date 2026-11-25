@@ -1146,7 +1146,7 @@ fun EcoFloatingBottomBar(
                             label = when (role) {
                                 "company" -> "Godown"
                                 "admin" -> "KYC"
-                                "agent" -> "Desk"
+                                "agent" -> "Home"
                                 else -> "Home"
                             },
                             icon = when (role) {
@@ -1460,221 +1460,89 @@ fun FlippableVoucherCard(
     modifier: Modifier = Modifier,
     onRedeemClick: (() -> Unit)? = null
 ) {
-    var isFlipped by remember { mutableStateOf(false) }
-    val rotation by animateFloatAsState(
-        targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-        label = "voucherCardFlip"
-    )
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(230.dp)
-            .graphicsLayer {
-                rotationY = rotation
-                cameraDistance = 14f * density
-            }
-            .clickable { isFlipped = !isFlipped }
+    // Users see ONLY voucher image, title, description, and coin cost (no voucher number or PIN)
+    LiquidGlassCard(
+        modifier = modifier.fillMaxWidth(),
+        cornerRadius = 18.dp,
+        highlightColor = LeafCoinGold
     ) {
-        if (rotation <= 90f) {
-            // FRONT OF THE VOUCHER CARD
-            LiquidGlassCard(
-                modifier = Modifier.fillMaxSize(),
-                cornerRadius = 18.dp,
-                highlightColor = LeafCoinGold
+        if (!voucher.imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = voucher.imageUrl,
+                contentDescription = voucher.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = voucher.brandName,
+                style = MaterialTheme.typography.labelLarge,
+                color = LeafCoinGold,
+                fontWeight = FontWeight.Bold
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, LeafCoinGold.copy(alpha = 0.5f))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BoxIcon(
-                            icon = Icons.Default.CardGiftcard,
-                            boxColor = LeafCoinGold.copy(alpha = 0.15f),
-                            iconColor = LeafCoinGold,
-                            size = 36.dp,
-                            iconSize = 20.dp
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = voucher.brandName,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "OFFICIAL PARTNER VOUCHER",
-                                fontSize = 9.sp,
-                                color = LeafCoinGold,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    // Coin Cost Badge with Center Leaf Motif
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, LeafCoinGold.copy(alpha = 0.5f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            EcoCoinIcon(size = 18.dp)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "${voucher.coinCost} Coins",
-                                color = LeafCoinGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Voucher Title & Value
-                Text(
-                    text = voucher.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp
-                )
-                Text(
-                    text = "Worth ₹${voucher.discountValue.toInt()} Cash Discount on Zero-Waste Essentials",
-                    color = EcoEmerald400,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Tap to flip prompt chip
-                    Surface(
-                        color = Slate800.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.FlipCameraAndroid, null, tint = Slate300, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Tap to Flip Barcode ↺", fontSize = 10.sp, color = Slate300, fontWeight = FontWeight.Medium)
-                        }
-                    }
-
-                    if (onRedeemClick != null) {
-                        Button(
-                            onClick = onRedeemClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            Text("Claim Voucher", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
-                    }
+                    EcoCoinIcon(size = 16.dp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${voucher.coinCost} Coins",
+                        color = LeafCoinGold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
                 }
             }
-        } else {
-            // BACK OF THE VOUCHER CARD (Mirrored 180 degrees so text reads properly)
-            Surface(
-                color = Slate950,
-                shape = RoundedCornerShape(18.dp),
-                border = androidx.compose.foundation.BorderStroke(1.25.dp, TechBlue.copy(alpha = 0.5f)),
-                shadowElevation = 8.dp,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { rotationY = 180f }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = voucher.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 2
+        )
+
+        if (!voucher.description.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = voucher.description,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                maxLines = 3
+            )
+        }
+
+        if (onRedeemClick != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onRedeemClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "SECURITY AUTHENTICATED",
-                            color = TechBlue,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        StatusBadge(text = "VALID 6 MONTHS", color = EcoEmerald400)
-                    }
-
-                    // Barcode Canvas Simulation
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White)
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val w = size.width
-                            val h = size.height
-                            var x = 0f
-                            val strokeWidths = listOf(2f, 4f, 1f, 3f, 5f, 2f, 1f, 4f, 2f, 3f, 6f, 2f, 1f, 3f, 5f)
-                            var idx = 0
-                            while (x < w - 8f) {
-                                val barW = strokeWidths[idx % strokeWidths.size]
-                                drawLine(
-                                    color = Color.Black,
-                                    start = androidx.compose.ui.geometry.Offset(x, 0f),
-                                    end = androidx.compose.ui.geometry.Offset(x, h),
-                                    strokeWidth = barW
-                                )
-                                x += barW + 3f
-                                idx++
-                            }
-                        }
-                    }
-
-                    // Security Code
-                    Text(
-                        text = "VOUCHER PIN: ECO-${voucher.id.take(8).uppercase()}",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Text(
-                        text = voucher.description ?: "Valid on zero-waste partner items.",
-                        color = Slate400,
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("10 Coins = ₹1 Value", fontSize = 10.sp, color = LeafCoinGold)
-                        Text("Tap to Flip Back ↻", fontSize = 10.sp, color = Slate400)
-                    }
-                }
+                Text("Request Voucher (${voucher.coinCost} Coins)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }

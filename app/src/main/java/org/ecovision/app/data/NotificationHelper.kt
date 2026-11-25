@@ -12,8 +12,8 @@ import androidx.core.content.ContextCompat
 import org.ecovision.app.R
 
 object NotificationHelper {
-    private const val CHANNEL_ID = "ecovision_admin_alerts"
-    private const val CHANNEL_NAME = "EcoVision Announcements"
+    private const val CHANNEL_ID = "ecovision_app_alerts"
+    private const val CHANNEL_NAME = "EcoVision App Alerts"
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -22,7 +22,7 @@ object NotificationHelper {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Platform announcements, pickup updates, and admin alerts"
+                description = "App alerts, pickup updates, and important announcements"
             }
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             manager?.createNotificationChannel(channel)
@@ -38,7 +38,7 @@ object NotificationHelper {
                 }
             }
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_ecovision_truck)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))

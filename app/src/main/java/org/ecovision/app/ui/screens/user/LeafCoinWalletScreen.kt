@@ -245,18 +245,28 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
             }
 
             // ==========================================
-            // MY VOUCHER REDEMPTIONS & WAITING LIST
+            // VOUCHER HISTORY & PURCHASED VOUCHERS
             // ==========================================
-            if (myVoucherRedemptions.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "🎟️ My Voucher Redemptions & Claims",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+            item {
+                Text(
+                    text = "🎟️ Voucher History & Purchased Vouchers",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
+            if (myVoucherRedemptions.isEmpty()) {
+                item {
+                    GlassCard {
+                        Text(
+                            text = "No voucher history yet. Request a voucher above to see your waiting list and purchased voucher codes here.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            } else {
                 items(myVoucherRedemptions) { red ->
                     val isPending = red.status == "waitlist" || red.status == "pending"
                     Surface(

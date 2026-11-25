@@ -68,6 +68,7 @@ fun UserHomeScreen(
     var searchQuery by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var latestAnnouncement by remember { mutableStateOf<AdminNotification?>(null) }
+    var isAgentOnDuty by remember { mutableStateOf(true) }
 
     // Dialog States for Real Working Pickup Actions
     var showVerifyVehicleDialog by remember { mutableStateOf(false) }
@@ -137,6 +138,7 @@ fun UserHomeScreen(
         loadUserData()
         val alerts = SupabaseClient.getAdminNotifications(profile?.role ?: "user")
         latestAnnouncement = alerts.firstOrNull()
+        isAgentOnDuty = SupabaseClient.isAnyAgentOnDuty()
     }
 
     LazyColumn(
@@ -533,6 +535,54 @@ fun UserHomeScreen(
                         onClick = onNavigateToScan
                     )
                 }
+                // Upcycled Craft Store Direct Access Card
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, EcoEmerald500.copy(alpha = 0.45f)),
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { onNavigateToMarketplace() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(EcoEmerald500.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Storefront, null, tint = EcoEmerald500, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Upcycled Craft Store",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Shop & sell eco-friendly upcycled products",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Button(
+                            onClick = onNavigateToMarketplace,
+                            colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text("Open Store", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
 
@@ -566,31 +616,44 @@ fun UserHomeScreen(
                 }
 
                 if (activePickups.isEmpty()) {
-                    // Modern Live Tracking Card with Interactive Working Buttons (Matching Image 3)
-                    Image3PickupLiveCard(
-                        scheduledSlot = "Today, 4:00 PM - 5:00 PM",
-                        isOnTime = true,
-                        step = 3,
-                        etaMinutes = 12,
-                        agentName = "Rafiq Khan",
-                        agentRole = "Pickup Agent",
-                        agentRating = "4.8 (124 ratings)",
-                        vehiclePlate = "KL-07-AB-1234",
-                        vehicleType = "Green Van",
-                        addressText = detectedAddress ?: "Civil Station, Malappuram",
-                        onCallClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+919876543210"))
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                statusMessage = "Dialer initiated for Agent Rafiq (+919876543210)"
+                    if (isAgentOnDuty) {
+                        // Modern Live Tracking Card (Only shown when Pickup Agent is On-Duty)
+                        Image3PickupLiveCard(
+                            scheduledSlot = "Today, 4:00 PM - 5:00 PM",
+                            isOnTime = true,
+                            step = 3,
+                            etaMinutes = 12,
+                            agentName = "Rafiq Khan",
+                            agentRole = "Pickup Agent (On Duty)",
+                            agentRating = "4.8 (124 ratings)",
+                            vehiclePlate = "KL-07-AB-1234",
+                            vehicleType = "Green Van",
+                            addressText = detectedAddress ?: "Civil Station, Malappuram",
+                            onCallClick = {
+                                try {
+                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+919876543210"))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    statusMessage = "Dialer initiated for Agent Rafiq (+919876543210)"
+                                }
+                            },
+                            onVerifyClick = {
+                                showVerifyVehicleDialog = true
+                            },
+                            verifyButtonText = "Verify Vehicle"
+                        )
+                    } else {
+                        GlassCard {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.LocalShipping, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text("No Pickup Agents On-Duty", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Agents are currently Off-Duty. You can still schedule a pickup request for the next shift.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                }
                             }
-                        },
-                        onVerifyClick = {
-                            showVerifyVehicleDialog = true
-                        },
-                        verifyButtonText = "Verify Vehicle"
-                    )
+                        }
+                    }
                 } else {
                     for (pickup in activePickups) {
                         val currentStep = when (pickup.status) {

@@ -797,13 +797,13 @@ fun AdminDashboardScreen() {
             // Admin Push Notifications Broadcast Studio
             item {
                 Text(
-                    text = "🔔 Push Notifications Broadcast",
+                    text = "🔔 App Alert Broadcast",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Send instant push alerts & announcements to EcoVision users, agents, or companies.",
+                    text = "Send instant App Alerts & announcements to EcoVision users, agents, or companies.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

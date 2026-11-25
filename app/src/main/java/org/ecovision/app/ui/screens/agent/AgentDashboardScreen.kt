@@ -54,6 +54,7 @@ fun AgentDashboardScreen() {
             if (profile != null) {
                 activePickups = SupabaseClient.getAgentActivePickups(profile!!.id)
                 godownItems = SupabaseClient.getGodownStockForAgent(profile!!.id)
+                isOnDuty = SupabaseClient.getAgentDutyStatus(profile!!.id)
             }
         }
     }
@@ -73,7 +74,7 @@ fun AgentDashboardScreen() {
     }
 
     val tabs = listOf(
-        "Desk" to Icons.Default.Home,
+        "Home" to Icons.Default.Home,
         "Pickups (${availablePickups.size + activePickups.size})" to Icons.Default.LocalShipping,
         "History & Godown" to Icons.Default.History
     )
@@ -204,7 +205,13 @@ fun AgentDashboardScreen() {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Switch(
                                     checked = isOnDuty,
-                                    onCheckedChange = { isOnDuty = it },
+                                    onCheckedChange = { newDuty ->
+                                        isOnDuty = newDuty
+                                        scope.launch {
+                                            SupabaseClient.setAgentDutyStatus(profile?.id ?: "agent-rahul", newDuty)
+                                            statusMessage = if (newDuty) "You are now ON DUTY and visible to households." else "You are now OFF DUTY."
+                                        }
+                                    },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = Color.White,
                                         checkedTrackColor = EcoEmerald600
@@ -233,69 +240,47 @@ fun AgentDashboardScreen() {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(
-                        text = "Live Assigned Pickup (${activePickups.size})",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (activePickups.isNotEmpty()) {
-                        StatusBadge(text = "LIVE ON ROAD", color = EcoEmerald500)
+                    GlassCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { SessionManager.setAgentTab(1) }
+                    ) {
+                        Icon(Icons.Default.LocalShipping, null, tint = EcoEmerald500, modifier = Modifier.size(26.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "${availablePickups.size + activePickups.size} Pickups",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "View nearby & active household requests",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
                     }
-                }
-            }
 
-            if (activePickups.isEmpty()) {
-                item {
-                    Image3PickupLiveCard(
-                        scheduledSlot = "Today, 4:00 PM - 5:00 PM",
-                        isOnTime = true,
-                        step = 3,
-                        etaMinutes = 12,
-                        agentName = profile?.fullName ?: "Rafiq Khan",
-                        agentRole = "Pickup Agent (You)",
-                        agentRating = "4.8 (124 ratings)",
-                        vehiclePlate = agentDetails?.vehicleNumber ?: "KL-07-AB-1234",
-                        vehicleType = "Green Van",
-                        addressText = "Perinthalmanna Road, Malappuram (Ready for dispatch)",
-                        onCallClick = { dialPhone("+919847012345") },
-                        onVerifyClick = { SessionManager.setAgentTab(1) },
-                        verifyButtonText = "Open Pickups",
-                        verifyButtonIcon = Icons.Default.LocalShipping
-                    )
-                }
-            } else {
-                val req = activePickups.first()
-                item {
-                    val currentStep = when (req.status) {
-                        "requested" -> 1
-                        "agent_assigned" -> 2
-                        "at_doorstep" -> 3
-                        "spot_weighed", "completed" -> 4
-                        else -> 2
+                    GlassCard(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { SessionManager.setAgentTab(2) }
+                    ) {
+                        Icon(Icons.Default.Inventory, null, tint = LeafCoinGold, modifier = Modifier.size(26.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "${godownItems.size} Godown",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "History & godown stock gate",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
                     }
-                    Image3PickupLiveCard(
-                        scheduledSlot = "Scheduled: Today (Immediate Dispatch)",
-                        isOnTime = true,
-                        step = currentStep,
-                        etaMinutes = if (req.status == "at_doorstep") 0 else 8,
-                        agentName = profile?.fullName ?: "Rafiq Khan",
-                        agentRole = "Pickup Agent (You)",
-                        agentRating = "4.8 (124 ratings)",
-                        vehiclePlate = agentDetails?.vehicleNumber ?: "KL-07-AB-1234",
-                        vehicleType = "Green Van",
-                        addressText = req.pickupAddress,
-                        onCallClick = { dialPhone(req.user?.mobile) },
-                        onVerifyClick = {
-                            selectedPickupForWeighing = req
-                            actualScaleWeight = "${req.totalEstimatedWeight}"
-                        },
-                        verifyButtonText = if (req.status == "at_doorstep") "Spot Weigh & Pay" else "Doorstep Weigh",
-                        verifyButtonIcon = Icons.Default.Balance
-                    )
                 }
             }
         }

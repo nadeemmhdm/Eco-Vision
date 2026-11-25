@@ -93,15 +93,6 @@ data class Profile(
 )
 
 @Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
 data class CashRedemption(
     val id: String = "",
     @SerialName("user_id") val userId: String,
@@ -186,15 +177,6 @@ data class VirtualBinItem(
 )
 
 @Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
 data class PickupRequest(
     val id: String,
     @SerialName("user_id") val userId: String,
@@ -228,15 +210,6 @@ data class GodownInventoryItem(
 )
 
 @Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
 data class BulkOrder(
     val id: String,
     @SerialName("company_id") val companyId: String,
@@ -246,15 +219,6 @@ data class BulkOrder(
     val status: String = "ordered",
     @SerialName("manifest_number") val manifestNumber: String,
     @SerialName("esg_carbon_offset_kg") val esgCarbonOffsetKg: Double = 0.0,
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
     @SerialName("created_at") val createdAt: String? = null
 )
 
@@ -296,15 +260,6 @@ data class AgentReview(
 )
 
 @Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
 data class AgentReport(
     val id: String,
     @SerialName("pickup_request_id") val pickupRequestId: String? = null,
@@ -317,30 +272,12 @@ data class AgentReport(
 )
 
 @Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
 data class LeafCoinTransaction(
     val id: String,
     @SerialName("user_id") val userId: String,
     val amount: Int,
     val type: String,
     val description: String,
-    @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
-data class AdminNotification(
-    val id: String = "",
-    val title: String,
-    val message: String,
-    @SerialName("target_role") val targetRole: String = "all",
     @SerialName("created_at") val createdAt: String? = null
 )
 

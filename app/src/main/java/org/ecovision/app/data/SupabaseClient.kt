@@ -307,8 +307,9 @@ object SupabaseClient {
         totalAmount: Double,
         binItemIds: List<String>
     ): PickupRequest? {
+        val reqId = UUID.randomUUID().toString()
         val req = PickupRequest(
-            id = UUID.randomUUID().toString(),
+            id = reqId,
             userId = userId,
             status = "requested",
             totalEstimatedWeight = totalWeight,
@@ -317,12 +318,24 @@ object SupabaseClient {
             pickupAddress = address
         )
         inMemoryPickupRequests.add(0, req)
+        try {
+            cachePrefs.edit().putString("cached_pickup_requests", cacheJson.encodeToString(inMemoryPickupRequests)).apply()
+        } catch (_: Exception) {}
 
         return try {
+            val payload = buildJsonObject {
+                put("id", reqId)
+                put("user_id", userId)
+                put("status", "requested")
+                put("total_estimated_weight", totalWeight)
+                put("total_estimated_amount", totalAmount)
+                put("pincode", pincode)
+                put("pickup_address", address)
+            }
             val created = httpClient.post("$REST_URL/pickup_requests") {
                 supabaseHeaders(preferReturn = true)
                 contentType(ContentType.Application.Json)
-                setBody(req)
+                setBody(payload)
             }.body<List<PickupRequest>>().firstOrNull() ?: req
 
             // Mark bin items as in request
@@ -397,7 +410,14 @@ object SupabaseClient {
         } catch (e: Exception) {
             emptyList()
         }
-        val combined = (inMemoryPickupRequests.filter { it.status == "requested" } + list).distinctBy { it.id }
+        val cachedRequests = try {
+            cachePrefs.getString("cached_pickup_requests", null)?.let {
+                cacheJson.decodeFromString<List<PickupRequest>>(it)
+            } ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+        val combined = (inMemoryPickupRequests.filter { it.status == "requested" } +
+            cachedRequests.filter { it.status == "requested" } +
+            list).distinctBy { it.id }
         return if (combined.isNotEmpty()) combined else defaultAvailable
     }
 
@@ -978,6 +998,50 @@ object SupabaseClient {
     private val inMemoryPickupRequests = mutableListOf<PickupRequest>()
     private val inMemoryVirtualBinItems = mutableListOf<VirtualBinItem>()
     private val inMemoryAdminNotifications = mutableListOf<AdminNotification>()
+    private val inMemoryAgentDutyMap = mutableMapOf<String, Boolean>()
+
+    suspend fun setAgentDutyStatus(agentId: String, isAvailable: Boolean): Boolean {
+        inMemoryAgentDutyMap[agentId] = isAvailable
+        try {
+            cachePrefs.edit().putBoolean("agent_duty_$agentId", isAvailable).apply()
+        } catch (_: Exception) {}
+        return try {
+            httpClient.patch("$REST_URL/agent_details") {
+                supabaseHeaders()
+                parameter("agent_id", "eq.$agentId")
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject { put("is_available", isAvailable) })
+            }
+            true
+        } catch (_: Exception) {
+            true
+        }
+    }
+
+    suspend fun getAgentDutyStatus(agentId: String = "agent-rahul"): Boolean {
+        inMemoryAgentDutyMap[agentId]?.let { return it }
+        return try {
+            val details = getAgentDetails(agentId)
+            details?.isAvailable ?: cachePrefs.getBoolean("agent_duty_$agentId", true)
+        } catch (_: Exception) {
+            cachePrefs.getBoolean("agent_duty_$agentId", true)
+        }
+    }
+
+    suspend fun isAnyAgentOnDuty(): Boolean {
+        if (inMemoryAgentDutyMap.isNotEmpty()) {
+            return inMemoryAgentDutyMap.values.any { it }
+        }
+        return try {
+            val list = httpClient.get("$REST_URL/agent_details") {
+                supabaseHeaders()
+                parameter("is_available", "eq.true")
+            }.body<List<AgentDetails>>()
+            if (list.isNotEmpty()) true else cachePrefs.getBoolean("agent_duty_agent-rahul", true)
+        } catch (_: Exception) {
+            cachePrefs.getBoolean("agent_duty_agent-rahul", true)
+        }
+    }
 
     private val cacheJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val cachePrefs by lazy {
