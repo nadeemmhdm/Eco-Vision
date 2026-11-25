@@ -356,7 +356,7 @@ fun AgentDashboardScreen() {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Leaf Coins to be awarded to user: ${(weightDouble * 10).toInt()} 🍃",
+                        text = "Coins to be awarded to user: ${(weightDouble * 10).toInt()} 🪙",
                         color = LeafCoinGold,
                         fontSize = 11.sp
                     )

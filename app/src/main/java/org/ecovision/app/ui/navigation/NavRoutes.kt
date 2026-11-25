@@ -10,7 +10,8 @@ sealed class Screen(val route: String, val title: String) {
     data object AiScan : Screen("ai_scan", "AI Waste Scanner")
     data object VirtualBin : Screen("virtual_bin", "Virtual Bin")
     data object Marketplace : Screen("marketplace", "Upcycled Store")
-    data object LeafCoins : Screen("leaf_coins", "Leaf Coin Wallet")
+    data object Wallet : Screen("wallet", "Wallet")
+    data object LeafCoins : Screen("wallet", "Wallet")
     data object DoorstepVerification : Screen("doorstep_verify/{requestId}", "Doorstep Verification") {
         fun createRoute(requestId: String) = "doorstep_verify/$requestId"
     }

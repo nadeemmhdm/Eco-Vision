@@ -25,6 +25,62 @@ import org.ecovision.app.data.SessionManager
 import org.ecovision.app.data.UserRole
 import org.ecovision.app.theme.*
 
+/**
+ * Custom Coin Design with Center Leaf Motif:
+ * A minted circular coin with beveled metallic golden rim, inner milled concentric ring,
+ * and a stylized organic green leaf centered inside the coin.
+ */
+@Composable
+fun EcoCoinIcon(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 24.dp
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFFDF70),
+                        Color(0xFFF59E0B),
+                        Color(0xFFB45309)
+                    )
+                )
+            )
+            .border(
+                width = (size.value * 0.08f).coerceAtLeast(1f).dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(Color(0xFFFFFBEB), Color(0xFFD97706), Color(0xFF78350F))
+                ),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        // Inner milled rim of the coin
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.82f)
+                .clip(CircleShape)
+                .background(Color(0xFFFEF3C7).copy(alpha = 0.15f))
+                .border(
+                    width = (size.value * 0.04f).coerceAtLeast(0.75f).dp,
+                    color = Color(0xFF78350F).copy(alpha = 0.5f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Stylized Leaf Emblem in the Center of the Coin
+            Icon(
+                imageVector = Icons.Default.Eco,
+                contentDescription = "Coin",
+                tint = Color(0xFF047857),
+                modifier = Modifier.fillMaxSize(0.68f)
+            )
+        }
+    }
+}
+
 @Composable
 fun EcoHeader(
     title: String,
@@ -82,8 +138,8 @@ fun EcoHeader(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Leaf Coin Counter Pill
-                    if (profile != null) {
+                    // Coins Counter Pill (Only for Household Users)
+                    if (profile != null && (profile?.role == "user" || profile?.role == null)) {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = Slate800,
@@ -96,13 +152,8 @@ fun EcoHeader(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Spa,
-                                    contentDescription = "Leaf Coins",
-                                    tint = LeafCoinGold,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                EcoCoinIcon(size = 18.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "${profile?.leafCoins ?: 0}",
                                     style = MaterialTheme.typography.labelLarge,
@@ -110,6 +161,28 @@ fun EcoHeader(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
+                        }
+                    } else if (profile != null) {
+                        // Role Badge for Admin, Agent, Company
+                        val badgeColor = when (profile?.role) {
+                            "admin" -> Color(0xFFF472B6)
+                            "agent" -> LeafCoinGold
+                            "company" -> Color(0xFF60A5FA)
+                            else -> EcoEmerald400
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = badgeColor.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f)),
+                            modifier = Modifier.padding(end = 10.dp)
+                        ) {
+                            Text(
+                                text = (profile?.role ?: "").uppercase(),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = badgeColor,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 
@@ -132,9 +205,6 @@ fun EcoHeader(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            RoleSwitcherPill()
         }
     }
 }

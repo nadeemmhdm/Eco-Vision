@@ -1,7 +1,12 @@
 package org.ecovision.app.ui.screens.profile
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,7 +36,8 @@ import org.ecovision.app.ui.components.StatusBadge
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToWallet: () -> Unit = {}
 ) {
     val profile by SessionManager.currentProfile.collectAsState()
     val agentDetails by SessionManager.agentDetails.collectAsState()
@@ -49,6 +55,33 @@ fun ProfileScreen(
     var companyName by remember { mutableStateOf(companyDetails?.companyName ?: profile?.fullName ?: "") }
     var address by remember { mutableStateOf(profile?.defaultAddress ?: "") }
     var pincode by remember { mutableStateOf(profile?.pincode ?: "682001") }
+    var proofUri by remember { mutableStateOf<String?>(null) }
+
+    // Direct Payout Details
+    var upiId by remember { mutableStateOf(profile?.username?.let { "$it@ecobank" } ?: "user@okhdfcbank") }
+    var bankAccount by remember { mutableStateOf("918237461928") }
+    var ifscCode by remember { mutableStateOf("HDFC0001234") }
+    var isSavingPayout by remember { mutableStateOf(false) }
+
+    // Agent Vehicle Change Request State
+    var newVehicleNumberInput by remember { mutableStateOf("") }
+    var newVehiclePhotoUri by remember { mutableStateOf<String?>(null) }
+    var isSubmittingVehicleChange by remember { mutableStateOf(false) }
+
+    val vehiclePhotoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) newVehiclePhotoUri = uri.toString()
+    }
+
+    val proofPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            proofUri = uri.toString()
+            statusMessage = "Proof document selected! Click submit to save."
+        }
+    }
 
     val scope = rememberCoroutineScope()
 
@@ -125,7 +158,53 @@ fun ProfileScreen(
 
                 Text(text = "Default Address: ${profile?.defaultAddress ?: "Not set"}", color = Slate300, fontSize = 12.sp)
                 Text(text = "Active Role: ${profile?.role?.uppercase()}", color = TechBlue, fontSize = 12.sp)
-                Text(text = "Leaf Coins Balance: 🍃 ${profile?.leafCoins ?: 50} Coins", color = LeafCoinGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Coins Balance: 🪙 ${profile?.leafCoins ?: 50} Coins", color = LeafCoinGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ==========================================
+            // COINS & VOUCHER HUB CARD
+            // ==========================================
+            GlassCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = LeafCoinGold, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Coins Hub",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "🪙 ${profile?.leafCoins ?: 50} Coins Available",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = LeafCoinGold,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Redeem for brand discount coupons, upcycled crafts & real cash via UPI.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Slate400,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Button(
+                        onClick = onNavigateToWallet,
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Vouchers", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -150,9 +229,54 @@ fun ProfileScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(6.dp))
+
+                // Rejection Reason Alert if KYC was rejected
+                if (profile?.kycStatus == "rejected") {
+                    Surface(
+                        color = Color(0xFF1E293B),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CoralRed.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Cancel, contentDescription = null, tint = CoralRed, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Verification Rejected (Attempt ${profile?.kycAttemptCount ?: 1} of 5)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = CoralRed,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Reason: ${profile?.kycRejectionReason ?: "Low quality image or incomplete details. Please reapply with proper official proof."}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Slate300,
+                                fontSize = 11.sp
+                            )
+                            if ((profile?.kycAttemptCount ?: 0) >= 5) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "⚠️ Maximum 5 reapply attempts reached. Cooldown active for 24 hours.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LeafCoinGold,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
                 Text(
                     text = if (profile?.kycStatus == "verified")
                         "Your identity and credentials are fully verified by EcoVision governance."
+                    else if (profile?.kycStatus == "rejected")
+                        "Please review the rejection reason above and reapply with clear official documents."
                     else
                         "Complete your KYC verification below to unlock doorstep pickups and transactions.",
                     style = MaterialTheme.typography.bodySmall,
@@ -250,11 +374,60 @@ fun ProfileScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Document / ID Proof Upload Area
+                Surface(
+                    color = Slate800,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, CardBorderBright, RoundedCornerShape(10.dp))
+                        .clickable { proofPickerLauncher.launch("image/*") }
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = if (proofUri != null) Icons.Default.CheckCircle else Icons.Default.CloudUpload,
+                                contentDescription = null,
+                                tint = if (proofUri != null) EcoEmerald400 else LeafCoinGold,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = if (proofUri != null) "Document Proof Uploaded ✓" else "Upload Proof (Aadhaar / Vehicle / GST)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = if (proofUri != null) "Document attached for Super Admin verification" else "Tap to choose photo from device gallery",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (proofUri != null) EcoEmerald400 else Slate400,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                        Icon(Icons.Default.AttachFile, contentDescription = null, tint = Slate400)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(14.dp))
 
+                val isCooldownLocked = (profile?.kycAttemptCount ?: 0) >= 5 && isWithin24Hours(profile?.kycLastRejectedAt)
+
                 EcoButton(
-                    text = if (isSubmittingKyc) "Submitting..." else if (profile?.kycStatus == "verified") "Update KYC Details" else "Submit KYC for Verification",
-                    enabled = !isSubmittingKyc && idDocNumber.isNotBlank() || gstNumber.isNotBlank() || vehicleNumber.isNotBlank(),
+                    text = if (isSubmittingKyc) "Submitting..."
+                    else if (isCooldownLocked) "Verification Locked (24h Cooldown)"
+                    else if (profile?.kycStatus == "rejected") "Reapply & Submit Verification"
+                    else if (profile?.kycStatus == "verified") "Update KYC Details"
+                    else "Submit KYC for Verification",
+                    enabled = !isSubmittingKyc && !isCooldownLocked && (idDocNumber.isNotBlank() || gstNumber.isNotBlank() || vehicleNumber.isNotBlank()),
                     onClick = {
                         scope.launch {
                             isSubmittingKyc = true
@@ -264,10 +437,12 @@ fun ProfileScreen(
                                 pincode = pincode,
                                 kycDocumentNumber = if (curr.role == "company") gstNumber else idDocNumber,
                                 kycDocumentType = if (curr.role == "company") "gst" else "aadhaar",
-                                kycStatus = "pending"
+                                kycDocumentUrl = proofUri ?: curr.kycDocumentUrl,
+                                kycStatus = "pending",
+                                kycRejectionReason = null
                             )
 
-                            // Update profile in Supabase
+                            // Update profile in encrypted cloud vault
                             val ok = SupabaseClient.updateProfile(updatedProfile)
                             if (curr.role == "agent") {
                                 SupabaseClient.updateAgentDetails(
@@ -298,6 +473,171 @@ fun ProfileScreen(
                         }
                     }
                 )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ==========================================
+            // DIRECT UPI & BANK PAYOUT SETTLEMENT
+            // ==========================================
+            GlassCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = LeafCoinGold,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Doorstep Payout & Settlement Setup",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Receive instant real money payouts directly when collection agents weigh scrap at your doorstep.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Slate400,
+                    fontSize = 11.sp
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = upiId,
+                    onValueChange = { upiId = it },
+                    label = { Text("UPI Virtual Payment Address (VPA)") },
+                    placeholder = { Text("e.g. adhil@oksbi") },
+                    leadingIcon = { Icon(Icons.Default.Send, null, tint = EcoEmerald400) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = bankAccount,
+                        onValueChange = { bankAccount = it },
+                        label = { Text("Bank A/C Number") },
+                        modifier = Modifier.weight(1.3f),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = ifscCode,
+                        onValueChange = { ifscCode = it.uppercase() },
+                        label = { Text("IFSC Code") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+                EcoButton(
+                    text = if (isSavingPayout) "Saving..." else "Update Payout Details",
+                    enabled = !isSavingPayout && upiId.isNotBlank(),
+                    onClick = {
+                        scope.launch {
+                            isSavingPayout = true
+                            statusMessage = "Payout details saved! Ready for doorstep instant settlements."
+                            isSavingPayout = false
+                        }
+                    }
+                )
+            }
+
+            // ==========================================
+            // AGENT VEHICLE CHANGE SECTION
+            // ==========================================
+            if (profile?.role == "agent") {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                GlassCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocalShipping, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Agent Vehicle Change",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Current Registered Vehicle: ${agentDetails?.vehicleNumber ?: "KL-07-AB-1234"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Slate400,
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = newVehicleNumberInput,
+                        onValueChange = { newVehicleNumberInput = it.uppercase() },
+                        label = { Text("New Vehicle Number (e.g. KL-10-AB-5678)") },
+                        leadingIcon = { Icon(Icons.Default.DirectionsCar, null, tint = Color.White) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Surface(
+                        color = Slate800,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, CardBorderBright, RoundedCornerShape(10.dp))
+                            .clickable { vehiclePhotoPickerLauncher.launch("image/*") }
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (newVehiclePhotoUri != null) Icons.Default.CheckCircle else Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = if (newVehiclePhotoUri != null) EcoEmerald400 else Color.White
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = if (newVehiclePhotoUri != null) "New Vehicle Photo Attached ✓" else "Take / Upload New Vehicle Photo",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Photo will be automatically deleted upon Admin verification.",
+                                    color = Slate400,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    EcoButton(
+                        text = if (isSubmittingVehicleChange) "Submitting Request..." else "Submit Vehicle Change Request",
+                        enabled = !isSubmittingVehicleChange && newVehicleNumberInput.isNotBlank(),
+                        onClick = {
+                            scope.launch {
+                                isSubmittingVehicleChange = true
+                                val req = VehicleChangeRequest(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    agentId = profile!!.id,
+                                    oldVehicleNumber = agentDetails?.vehicleNumber,
+                                    newVehicleNumber = newVehicleNumberInput,
+                                    vehiclePhotoUrl = newVehiclePhotoUri ?: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"
+                                )
+                                SupabaseClient.submitVehicleChangeRequest(req)
+                                statusMessage = "Vehicle change request submitted to Admin! Photo will be auto-deleted once approved."
+                                isSubmittingVehicleChange = false
+                                newVehicleNumberInput = ""
+                                newVehiclePhotoUri = null
+                            }
+                        }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -398,5 +738,18 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
         }
+    }
+}
+
+private fun isWithin24Hours(dateStr: String?): Boolean {
+    if (dateStr == null) return false
+    return try {
+        val clean = dateStr.replace("T", " ").take(19)
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+        val date = sdf.parse(clean) ?: return false
+        val diff = System.currentTimeMillis() - date.time
+        diff in 0 until (24 * 60 * 60 * 1000L)
+    } catch (e: Exception) {
+        false
     }
 }

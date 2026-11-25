@@ -38,6 +38,23 @@ data class PlatformSettings(
     @SerialName("coin_to_cash_rate") val coinToCashRate: Double = 0.10
 )
 
+val KeralaDistricts = listOf(
+    "Malappuram",
+    "Alappuzha",
+    "Ernakulam",
+    "Idukki",
+    "Kannur",
+    "Kasaragod",
+    "Kollam",
+    "Kottayam",
+    "Kozhikode",
+    "Palakkad",
+    "Pathanamthitta",
+    "Thiruvananthapuram",
+    "Thrissur",
+    "Wayanad"
+)
+
 @Serializable
 data class Profile(
     val id: String,
@@ -51,8 +68,18 @@ data class Profile(
     @SerialName("kyc_document_type") val kycDocumentType: String? = null,
     @SerialName("kyc_document_number") val kycDocumentNumber: String? = null,
     @SerialName("kyc_document_url") val kycDocumentUrl: String? = null,
+    val district: String? = "Malappuram",
     @SerialName("default_address") val defaultAddress: String? = null,
     val pincode: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    @SerialName("device_info") val deviceInfo: String? = null,
+    @SerialName("device_ip") val deviceIp: String? = null,
+    @SerialName("kyc_rejection_reason") val kycRejectionReason: String? = null,
+    @SerialName("kyc_attempt_count") val kycAttemptCount: Int = 0,
+    @SerialName("kyc_last_rejected_at") val kycLastRejectedAt: String? = null,
+    @SerialName("upi_id") val upiId: String? = null,
+    @SerialName("upi_holder_name") val upiHolderName: String? = null,
     @SerialName("referral_code") val referralCode: String? = null,
     @SerialName("referred_by") val referredBy: String? = null,
     @SerialName("leaf_coins") val leafCoins: Int = 50,
@@ -60,6 +87,32 @@ data class Profile(
     @SerialName("email_otp_enabled") val emailOtpEnabled: Boolean = false,
     @SerialName("profile_photo_url") val profilePhotoUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class CashRedemption(
+    val id: String = "",
+    @SerialName("user_id") val userId: String,
+    @SerialName("coins_amount") val coinsAmount: Int,
+    @SerialName("cash_amount") val cashAmount: Double,
+    @SerialName("upi_id") val upiId: String,
+    @SerialName("holder_name") val holderName: String,
+    val status: String = "waitlist", // "waitlist", "processing", "completed", "rejected"
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("settled_at") val settledAt: String? = null
+)
+
+@Serializable
+data class VehicleChangeRequest(
+    val id: String = "",
+    @SerialName("agent_id") val agentId: String,
+    @SerialName("old_vehicle_number") val oldVehicleNumber: String? = null,
+    @SerialName("new_vehicle_number") val newVehicleNumber: String,
+    @SerialName("vehicle_photo_url") val vehiclePhotoUrl: String? = null,
+    val status: String = "pending", // "pending", "approved", "rejected"
+    @SerialName("rejection_reason") val rejectionReason: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("reviewed_at") val reviewedAt: String? = null
 )
 
 @Serializable
@@ -233,4 +286,55 @@ data class AiDetectionResult(
     val estimatedBasePrice: Double,
     val diyRecommendations: List<String>,
     val imageUrl: String? = null
+)
+
+// Vouchers for Coins
+@Serializable
+data class EcoVoucher(
+    val id: String,
+    val title: String,
+    val description: String? = null,
+    @SerialName("image_url") val imageUrl: String? = null,
+    @SerialName("coin_cost") val coinCost: Int = 100,
+    @SerialName("discount_value") val discountValue: Double = 10.0,
+    @SerialName("brand_name") val brandName: String = "EcoPartner",
+    val category: String = "shopping",
+    @SerialName("is_active") val isActive: Boolean = true
+)
+
+// User Voucher Redemptions (Waiting List & Delivery)
+@Serializable
+data class VoucherRedemption(
+    val id: String = "",
+    @SerialName("user_id") val userId: String,
+    @SerialName("user_name") val userName: String? = null,
+    @SerialName("user_email") val userEmail: String? = null,
+    @SerialName("voucher_id") val voucherId: String,
+    @SerialName("voucher_title") val voucherTitle: String,
+    @SerialName("brand_name") val brandName: String = "EcoPartner",
+    @SerialName("coin_cost") val coinCost: Int,
+    @SerialName("voucher_details") val voucherDetails: String? = null, // Admin-entered code, link, PIN or details
+    val status: String = "waitlist", // "waitlist", "completed", "rejected"
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("fulfilled_at") val fulfilledAt: String? = null
+)
+
+// Marketplace Cart & Orders
+data class CartItem(
+    val product: MarketplaceProduct,
+    var quantity: Int = 1
+)
+
+@Serializable
+data class MarketplaceOrder(
+    val id: String,
+    @SerialName("user_id") val userId: String,
+    val subtotal: Double,
+    @SerialName("delivery_fee") val deliveryFee: Double,
+    @SerialName("total_amount") val totalAmount: Double,
+    @SerialName("delivery_address") val deliveryAddress: String,
+    val status: String = "placed", // 'placed', 'assigned', 'picked_up', 'delivered'
+    @SerialName("assigned_agent_id") val assignedAgentId: String? = null,
+    @SerialName("payment_method") val paymentMethod: String = "online",
+    @SerialName("created_at") val createdAt: String? = null
 )

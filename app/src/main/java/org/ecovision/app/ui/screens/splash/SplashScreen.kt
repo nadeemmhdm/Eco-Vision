@@ -55,13 +55,18 @@ fun SplashScreen(
         label = "glowAlpha"
     )
 
+    var hasNavigated by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
-        SessionManager.init()
+        if (!isInitialized) {
+            SessionManager.init()
+        }
     }
 
-    LaunchedEffect(isInitialized, currentProfile) {
-        if (isInitialized) {
-            delay(1200) // smooth splash duration
+    LaunchedEffect(isInitialized) {
+        if (isInitialized && !hasNavigated) {
+            hasNavigated = true
+            delay(600) // Brief smooth splash transition
             val profile = currentProfile
             if (profile != null) {
                 onNavigateToHome(profile)

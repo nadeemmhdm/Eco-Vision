@@ -73,7 +73,9 @@ fun MainAppHost() {
         Screen.CompanyDashboard.route,
         Screen.AdminDashboard.route,
         Screen.Marketplace.route,
-        Screen.VirtualBin.route
+        Screen.VirtualBin.route,
+        Screen.LeafCoins.route,
+        Screen.Profile.route
     )
 
     Scaffold(
@@ -118,7 +120,7 @@ fun MainAppHost() {
                             BottomNavItem("Scan", Screen.AiScan.route, Icons.Default.CameraAlt),
                             BottomNavItem("Bin", Screen.VirtualBin.route, Icons.Default.DeleteOutline),
                             BottomNavItem("Store", Screen.Marketplace.route, Icons.Default.Storefront),
-                            BottomNavItem("Wallet", Screen.LeafCoins.route, Icons.Default.Spa)
+                            BottomNavItem("Wallet", Screen.Wallet.route, Icons.Default.AccountBalanceWallet)
                         )
                     }
 
@@ -198,6 +200,22 @@ fun MainAppHost() {
 
             // User Routes
             composable(Screen.UserHome.route) {
+                LaunchedEffect(profile) {
+                    val r = profile?.role
+                    if (r == "admin") {
+                        navController.navigate(Screen.AdminDashboard.route) {
+                            popUpTo(Screen.UserHome.route) { inclusive = true }
+                        }
+                    } else if (r == "agent") {
+                        navController.navigate(Screen.AgentDashboard.route) {
+                            popUpTo(Screen.UserHome.route) { inclusive = true }
+                        }
+                    } else if (r == "company") {
+                        navController.navigate(Screen.CompanyDashboard.route) {
+                            popUpTo(Screen.UserHome.route) { inclusive = true }
+                        }
+                    }
+                }
                 UserHomeScreen(
                     onNavigateToScan = { navController.navigate(Screen.AiScan.route) },
                     onNavigateToBin = { navController.navigate(Screen.VirtualBin.route) },
@@ -245,12 +263,48 @@ fun MainAppHost() {
 
             // Role Dashboards
             composable(Screen.AgentDashboard.route) {
+                LaunchedEffect(profile) {
+                    if (profile != null && profile?.role != "agent") {
+                        val route = when (profile?.role) {
+                            "admin" -> Screen.AdminDashboard.route
+                            "company" -> Screen.CompanyDashboard.route
+                            else -> Screen.UserHome.route
+                        }
+                        navController.navigate(route) {
+                            popUpTo(Screen.AgentDashboard.route) { inclusive = true }
+                        }
+                    }
+                }
                 AgentDashboardScreen()
             }
             composable(Screen.CompanyDashboard.route) {
+                LaunchedEffect(profile) {
+                    if (profile != null && profile?.role != "company") {
+                        val route = when (profile?.role) {
+                            "admin" -> Screen.AdminDashboard.route
+                            "agent" -> Screen.AgentDashboard.route
+                            else -> Screen.UserHome.route
+                        }
+                        navController.navigate(route) {
+                            popUpTo(Screen.CompanyDashboard.route) { inclusive = true }
+                        }
+                    }
+                }
                 CompanyDashboardScreen()
             }
             composable(Screen.AdminDashboard.route) {
+                LaunchedEffect(profile) {
+                    if (profile != null && profile?.role != "admin") {
+                        val route = when (profile?.role) {
+                            "agent" -> Screen.AgentDashboard.route
+                            "company" -> Screen.CompanyDashboard.route
+                            else -> Screen.UserHome.route
+                        }
+                        navController.navigate(route) {
+                            popUpTo(Screen.AdminDashboard.route) { inclusive = true }
+                        }
+                    }
+                }
                 AdminDashboardScreen()
             }
 
@@ -262,7 +316,8 @@ fun MainAppHost() {
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToWallet = { navController.navigate(Screen.LeafCoins.route) }
                 )
             }
         }

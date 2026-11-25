@@ -1,5 +1,15 @@
 package org.ecovision.app.ui.screens.user
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationManager
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,9 +29,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
@@ -39,12 +51,64 @@ fun UserHomeScreen(
     onNavigateToDoorstep: (String) -> Unit,
     onNavigateToRate: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val profile by SessionManager.currentProfile.collectAsState()
     var activePickups by remember { mutableStateOf<List<PickupRequest>>(emptyList()) }
     var virtualBinCount by remember { mutableIntStateOf(0) }
     var virtualBinValue by remember { mutableDoubleStateOf(0.0) }
     var isLoading by remember { mutableStateOf(true) }
+    var isLocationEnabled by remember { mutableStateOf(DeviceLocationHelper.isLocationEnabled(context)) }
+    var detectedAddress by remember { mutableStateOf<String?>(profile?.defaultAddress) }
     val scope = rememberCoroutineScope()
+
+    // Location Permission Launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            isLocationEnabled = DeviceLocationHelper.isLocationEnabled(context)
+            if (isLocationEnabled) {
+                try {
+                    val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                    val loc: Location? = lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        ?: lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                    if (loc != null && profile != null) {
+                        scope.launch {
+                            val curr = profile!!
+                            val updated = curr.copy(
+                                latitude = loc.latitude,
+                                longitude = loc.longitude,
+                                defaultAddress = curr.defaultAddress ?: "${curr.district ?: "Malappuram"}, Kerala"
+                            )
+                            SupabaseClient.updateProfile(updated)
+                            SessionManager.setProfile(updated, persist = true)
+                            detectedAddress = updated.defaultAddress
+                        }
+                    }
+                } catch (e: SecurityException) { }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // Request location access on start
+        val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (finePerm != PackageManager.PERMISSION_GRANTED && coarsePerm != PackageManager.PERMISSION_GRANTED) {
+            locationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        } else {
+            isLocationEnabled = DeviceLocationHelper.isLocationEnabled(context)
+        }
+    }
+
+    val isServiceAvailable = remember(profile?.district) {
+        val dist = profile?.district?.trim()?.lowercase() ?: "malappuram"
+        dist == "malappuram"
+    }
 
     LaunchedEffect(profile?.id) {
         if (profile != null) {
@@ -67,6 +131,87 @@ fun UserHomeScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(4.dp))
+
+            // 1. Device Location Off Notification Banner
+            if (!isLocationEnabled) {
+                Surface(
+                    color = Color(0xFF18181B),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.LocationOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Device Location is Turned Off",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Please turn ON device location to detect your service zone and auto-fill collection addresses.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Slate400,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Button(
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                                } catch (e: Exception) { }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("Turn ON", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // 2. Service Availability in Kerala Pilot Zones
+            if (!isServiceAvailable) {
+                Surface(
+                    color = Color(0xFF18181B),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Service Not Available in Your Area Yet",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Doorstep collection operations are expanding across Kerala. Your location in ${profile?.district ?: "this district"} is saved, and we will notify you immediately once service starts in your area!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Slate300,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             // KYC Status Notice
             if (profile?.kycStatus == "pending") {
@@ -134,10 +279,10 @@ fun UserHomeScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Spa, null, tint = LeafCoinGold, modifier = Modifier.size(18.dp))
+                            EcoCoinIcon(size = 18.dp)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${profile?.leafCoins ?: 0} 🍃",
+                                text = "${profile?.leafCoins ?: 0}",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = LeafCoinGold,
                                 fontWeight = FontWeight.Bold
@@ -246,8 +391,8 @@ fun UserHomeScreen(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 HubCard(
-                    title = "Leaf Wallet",
-                    subtitle = "Redeem Cash",
+                    title = "Wallet",
+                    subtitle = "Coins & Vouchers",
                     icon = Icons.Default.AccountBalanceWallet,
                     color = LeafCoinGold,
                     modifier = Modifier.weight(1f),

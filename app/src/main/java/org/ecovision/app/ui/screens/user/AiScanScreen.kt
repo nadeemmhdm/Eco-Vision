@@ -1,6 +1,15 @@
 package org.ecovision.app.ui.screens.user
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,15 +27,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.*
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 
 @Composable
@@ -35,20 +50,110 @@ fun AiScanScreen(
     onNavigateToMarketplace: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("ecovision_ai_prefs", Context.MODE_PRIVATE) }
     val profile by SessionManager.currentProfile.collectAsState()
     val scope = rememberCoroutineScope()
 
     var isScanning by remember { mutableStateOf(false) }
     var detectionResult by remember { mutableStateOf<AiDetectionResult?>(null) }
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var estimatedWeight by remember { mutableDoubleStateOf(2.5) }
     var categories by remember { mutableStateOf<List<WasteCategory>>(emptyList()) }
     var pricingSlabs by remember { mutableStateOf<List<WeightPricingSlab>>(emptyList()) }
     var selectedCategoryId by remember { mutableStateOf("pet_plastic") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
+    // Gemini API Key State
+    var geminiApiKey by remember { mutableStateOf(prefs.getString("gemini_api_key", "") ?: "") }
+    var showApiKeyDialog by remember { mutableStateOf(false) }
+    var inputApiKey by remember { mutableStateOf(geminiApiKey) }
+
+    // Camera Permission State
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+        if (!isGranted) {
+            statusMessage = "Camera permission is required to capture photos directly."
+        }
+    }
+
+    // Camera Photo Capture Launcher
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            capturedBitmap = bitmap
+            scope.launch {
+                isScanning = true
+                try {
+                    // Save to device storage cache
+                    val stream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                    val bytes = stream.toByteArray()
+
+                    val scanDir = File(context.cacheDir, "waste_scans")
+                    if (!scanDir.exists()) scanDir.mkdirs()
+                    val savedFile = File(scanDir, "scan_${System.currentTimeMillis()}.jpg")
+                    FileOutputStream(savedFile).use { it.write(bytes) }
+
+                    val result = AiVisionEngine.analyzeWasteImage(
+                        imageUri = savedFile.absolutePath,
+                        imageBytes = bytes,
+                        geminiApiKey = geminiApiKey.ifBlank { null }
+                    )
+                    detectionResult = result
+                    selectedCategoryId = result.categoryId
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                isScanning = false
+            }
+        }
+    }
+
+    // Gallery Picker Launcher
+    val pickGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                isScanning = true
+                try {
+                    val stream = context.contentResolver.openInputStream(uri)
+                    val bytes = stream?.readBytes()
+                    if (bytes != null) {
+                        capturedBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        val result = AiVisionEngine.analyzeWasteImage(
+                            imageUri = uri.toString(),
+                            imageBytes = bytes,
+                            geminiApiKey = geminiApiKey.ifBlank { null }
+                        )
+                        detectionResult = result
+                        selectedCategoryId = result.categoryId
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                isScanning = false
+            }
+        }
+    }
+
+    // Ask camera permission on first entry if not granted
     LaunchedEffect(Unit) {
         categories = SupabaseClient.getCategories()
         pricingSlabs = SupabaseClient.getPricingSlabs()
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     Scaffold(
@@ -64,12 +169,29 @@ fun AiScanScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "AI Waste Scanner",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AI Waste Scanner",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (geminiApiKey.isNotBlank()) "Powered by Google Gemini Vision AI" else "Vision AI & Smart Material Grading",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (geminiApiKey.isNotBlank()) EcoEmerald400 else Slate400
+                    )
+                }
+                IconButton(onClick = {
+                    inputApiKey = geminiApiKey
+                    showApiKeyDialog = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = "Gemini API Key",
+                        tint = if (geminiApiKey.isNotBlank()) EcoEmerald400 else Slate400
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -91,7 +213,14 @@ fun AiScanScreen(
                     .border(2.dp, if (detectionResult != null) EcoEmerald500 else CardBorderBright, RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (detectionResult?.imageUrl != null) {
+                if (capturedBitmap != null) {
+                    Image(
+                        bitmap = capturedBitmap!!.asImageBitmap(),
+                        contentDescription = "Captured Waste Item",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (detectionResult?.imageUrl != null) {
                     AsyncImage(
                         model = detectionResult?.imageUrl,
                         contentDescription = "Scanned Waste",
@@ -111,12 +240,12 @@ fun AiScanScreen(
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Point camera at waste item",
+                            text = if (hasCameraPermission) "Tap 'Take Photo' to scan waste" else "Camera permission needed",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Slate400
                         )
                         Text(
-                            text = "YOLOv8 & Google Vision AI Ready",
+                            text = if (geminiApiKey.isNotBlank()) "Gemini Vision AI Engine: ACTIVE" else "Smart Multimodal Material Recognition",
                             style = MaterialTheme.typography.labelSmall,
                             color = EcoEmerald500
                         )
@@ -128,7 +257,7 @@ fun AiScanScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(24.dp)
+                            .padding(20.dp)
                             .border(2.dp, EcoEmerald400, RoundedCornerShape(12.dp))
                     ) {
                         Surface(
@@ -137,7 +266,7 @@ fun AiScanScreen(
                             modifier = Modifier.align(Alignment.TopStart)
                         ) {
                             Text(
-                                text = "${detectionResult?.categoryName} · ${detectionResult?.confidence}% Match",
+                                text = "${detectionResult?.categoryName} · ${detectionResult?.confidence?.toInt() ?: 96}% Match",
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -148,27 +277,33 @@ fun AiScanScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Action: Run Scan Simulation
+            // Action: Camera Capture & Gallery Pick Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 EcoButton(
-                    text = if (isScanning) "AI Analyzing..." else "Capture & Scan Waste",
+                    text = if (isScanning) "AI Analyzing..." else "Take Photo 📸",
                     icon = Icons.Default.CameraAlt,
                     enabled = !isScanning,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1.2f),
                     onClick = {
-                        scope.launch {
-                            isScanning = true
-                            val result = AiVisionEngine.analyzeWasteImage(null)
-                            detectionResult = result
-                            selectedCategoryId = result.categoryId
-                            isScanning = false
+                        if (hasCameraPermission) {
+                            takePhotoLauncher.launch(null)
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     }
+                )
+                EcoButton(
+                    text = "Gallery 🖼️",
+                    icon = Icons.Default.PhotoLibrary,
+                    isSecondary = true,
+                    enabled = !isScanning,
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickGalleryLauncher.launch("image/*") }
                 )
             }
 
@@ -196,7 +331,7 @@ fun AiScanScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "AI Confidence Score: ${result.confidence}%",
+                                text = "AI Confidence Score: ${result.confidence.toInt()}%",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Slate400
                             )
@@ -336,6 +471,69 @@ fun AiScanScreen(
             }
 
             Spacer(modifier = Modifier.height(30.dp))
+        }
+
+        // Gemini API Key Configuration Dialog
+        if (showApiKeyDialog) {
+            AlertDialog(
+                onDismissRequest = { showApiKeyDialog = false },
+                containerColor = Slate850,
+                titleContentColor = Color.White,
+                textContentColor = Slate300,
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Key, contentDescription = null, tint = EcoEmerald400)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Google Gemini API Key")
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "Enter your Google Gemini API key to activate real-time Gemini 1.5 Flash Vision AI analysis on waste photos:",
+                            fontSize = 12.sp,
+                            color = Slate300
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = inputApiKey,
+                            onValueChange = { inputApiKey = it },
+                            label = { Text("Gemini API Key (AIzaSy...)") },
+                            placeholder = { Text("Paste your API key here") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EcoEmerald500,
+                                unfocusedBorderColor = CardBorderBright
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Get a free Gemini API key at aistudio.google.com. If blank, high-accuracy built-in AI will analyze your item.",
+                            fontSize = 10.sp,
+                            color = Slate400
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            geminiApiKey = inputApiKey.trim()
+                            prefs.edit().putString("gemini_api_key", geminiApiKey).apply()
+                            showApiKeyDialog = false
+                            statusMessage = if (geminiApiKey.isNotBlank()) "Gemini Vision AI Activated! ✓" else "Reset to Built-in AI Engine"
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500)
+                    ) {
+                        Text("Save & Apply", color = Slate950, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showApiKeyDialog = false }) {
+                        Text("Cancel", color = Slate400)
+                    }
+                }
+            )
         }
     }
 }

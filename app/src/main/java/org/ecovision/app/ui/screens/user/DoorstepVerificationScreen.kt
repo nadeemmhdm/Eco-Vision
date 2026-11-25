@@ -233,7 +233,7 @@ fun DoorstepVerificationScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "+58 Leaf Coins Earned! 🍃",
+                                text = "+58 Coins Earned! 🪙",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = LeafCoinGold,
                                 fontWeight = FontWeight.Bold

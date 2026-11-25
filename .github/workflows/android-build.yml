@@ -77,32 +77,76 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.1
-          name: EcoVision Release v1.0.1
+          tag_name: v1.0.4
+          name: EcoVision Release v1.0.4
           draft: false
           prerelease: false
           body: |
-            ### 🍃 EcoVision Release (Latest APK)
+            ### 🪙 EcoVision Release v1.0.4 (Latest APK)
 
-            AI-Powered Smart Waste Management & Circular Economy Platform for Android.
+            Complete AI-Powered Smart Waste Management, Circular Economy & Rewards Wallet Platform for Android.
 
-            #### 🚀 What's New in this Release:
-            - **🌟 Animated Splash Screen & Persistent Login**: Smooth animated splash with automatic session restoration via `SharedPreferences`. Already logged-in users are routed directly to their respective role dashboard (User, Agent, Company, Admin).
-            - **⚡ Fast Registration (No Pre-KYC Barrier)**: Registration collects only essential credentials. Identity and verification documents (Aadhaar, Vehicle, GST) are collected seamlessly post-registration in Profile.
-            - **🔍 Real-Time Field Verification**:
-              - Live username availability check (real-time query to Supabase).
-              - Indian 10-digit mobile (+91) format & duplicate check.
-              - Standard email format validation with instant feedback.
-              - Animated password strength meter with visual score and tips.
-              - Referral code validation with Leaf Coin bonus.
-            - **📱 Keyboard & Form Scrolling Fix**: Optimized layout with `imePadding` and `windowSoftInputMode="adjustResize"`, allowing smooth scrolling while the soft keyboard is open.
-            - **🧪 1-Tap Quick Test Accounts**: One-click login cards for Admin, Household User, Pickup Agent, and Buyer Company for instant evaluation and demo.
-            - **🗄️ Full Supabase Permissions**: Enabled RLS policies across all 16 platform tables for seamless unauthenticated & authenticated operations.
-            ### 🍃 EcoVision v1.0.0 Release
+            #### 🚀 What's New in v1.0.4:
+            - **🪙 Custom Coin with Centered Leaf Emblem**:
+              - Custom minted circular coin badge with metallic bevel, inner milled concentric ring, and an organic emerald leaf emblem centered in the coin.
+              - Uniformly used across Wallet, Header, Profile, and Activity Ledgers.
+            - **💼 Dedicated Wallet & 10 Coins = ₹1.00 Valuation**:
+              - Page officially renamed to **"Wallet"**.
+              - Real-world conversion rate: **10 Coins = ₹1.00** (e.g. 100 Coins = ₹10.00, 500 Coins = ₹50.00).
+              - Shows total coin balance and instant redeemable cash value.
+            - **💸 Coins Cash Redeem via UPI**:
+              - Direct UPI cash redemption with Holder Name and VPA validation.
+              - Instant coin deduction and placement into UPI settlement waiting list queue.
+              - Admin reviews and marks cash settlement completed.
+            - **🎁 Admin-Added Partner Vouchers**:
+              - Super Admin can create and list promotional discount vouchers collecting: Voucher Name, Image URL, Description, and Voucher Coins Price.
+              - Seamlessly published to all user wallets.
+            - **🎟️ Voucher Redemption Waiting List & Digital Fulfillment**:
+              - User redeems voucher with coins -> Coins are deducted immediately and request enters the Waiting List.
+              - Admin views pending voucher requests in **Voucher Redemption Requests Desk**.
+              - Admin enters digital voucher code & instructions and clicks **"Submit & Push to User"**.
+              - Code appears instantly in the user's Wallet with one-tap copy and confirmation note that it's delivered to the user's email.
+            - **📍 Kerala 14 Districts & Location Access (Malappuram Pilot)**:
+              - App checks GPS location on start and home screen; prompts user to turn ON location if disabled.
+              - Kerala district selection (all 14 districts) during sign-up.
+              - Friendly notice card for non-Malappuram users: *"Service is not available in your area yet. We will notify you once service starts in your area!"*
+            - **📱 Device Intelligence**: Collects device model, manufacturer, OS version, and IP during auth.
+            - **🛡️ Auto-Delete Verification Proofs**: Identity proofs and vehicle photos are permanently deleted from database and storage upon Admin verification.
+            - **🚫 Rejection Reason & 5-Attempt Cooldown**:
+              - Admin selects specific KYC rejection reasons.
+              - Users view reason and can reapply (max 5 attempts, then 24-hour cooldown lock).
+            - **🔒 Auth Rate Limiting**: Max 5 failed login attempts triggers a 24-hour lockout.
+            - **🎨 Clean Monochrome Animations & UI/UX**:
+              - Sleek dark theme (`#050811`), crisp contrast, smooth micro-interactions.
+              - Zero colorful / likee animations; clean minimalist transitions.
+              - Removed all mentions of "Supabase" and "Leaf Coins" across all screens and user-facing text.
 
-            AI-Powered Smart Waste Management & Circular Economy Platform for Android.
-
-            #### 🚀 Highlights:
+            #### 🚀 What's New in v1.0.2:
+            - **📷 First-Time Camera Access & Device Storage**: Runtime camera permissions (`rememberLauncherForActivityResult`), photo capture (`TakePicturePreview`), gallery image picking, and local device image caching (`cacheDir/waste_scans/`).
+            - **🤖 Google Gemini 1.5 Flash Vision AI**: Real Gemini Vision API integration (`v1beta/models/gemini-1.5-flash:generateContent`) analyzing waste scrap images with base64 payload, circular economy classification, and in-app API key settings.
+            - **🛍️ Upcycled Marketplace E-Commerce & Free Delivery**:
+              - Product details modal with source scrap badge, pricing, and description.
+              - Live shopping cart drawer with quantity increment/decrement controls.
+              - **Free Delivery Engine**: Orders of ₹200 and above qualify for **FREE DELIVERY** (orders < ₹200 have a nominal ₹25 delivery fee).
+              - Online checkout dispatching pickup/delivery orders directly to neighborhood agents.
+            - **🍃 Leaf Coin Vouchers & Admin Voucher Creator**:
+              - Users browse admin-listed partner discount vouchers and redeem Leaf Coins for active coupon codes.
+              - Super Admin can list new promotional vouchers with brand name, image URL, coin cost, and discount value.
+            - **🛡️ Super Admin User Moderation Desk**:
+              - Full user management: filter profiles by role and KYC status.
+              - Inspect uploaded proof documents (Aadhaar, GSTIN, Vehicle plate `KL-07-CD-5678`).
+              - Approve, reject KYC, block, ban, or delete accounts.
+            - **📜 Interactive Terms & Conditions & Privacy Policy**:
+              - Clickable "Terms & Conditions" and "Privacy Policy" links opening animated compliance modals with instant agreement actions.
+            - **🔒 Strict Role-Based Dashboard Isolation**:
+              - Admin accounts only access Admin Governance; Agent accounts only access Collection Desk; Company accounts only access B2B Godown Feed; Citizens access Household Home, AI Scan, Bin, Store, and Wallet.
+              - Removed cross-role switching pills from navigation headers.
+            - **🎨 App Icon & Splash Screen Unification**:
+              - Unified Android 12+ system splash (`values-v31/themes.xml`) and launcher icon with Material Eco Leaf emblem (`#10B981`) on dark background (`#050811`). Zero duplicate splash delay.
+            - **⚡ Resilient Sign-In & Supabase Storage**:
+              - Clean sign-in screen with discreet demo accounts trigger.
+              - Resilient instant offline/latency fallback for test credentials (`adhil`, `rahul_agent`, `greenloop_co`, `admin`).
+              - Real Supabase bucket `ecovision-media` active for waste photos and vouchers.
             - **Adaptive Auth & KYC**: Mobile OTP / Username + 2FA (TOTP & Email OTP) + Aadhaar / GST document onboarding.
             - **AI Waste Scanner**: Instant YOLOv8-simulated material identification, recyclable grading, confidence scoring, and DIY upcycling recommendations.
             - **Weight-Based Pricing Engine**: Dynamic per-kg pricing slabs with physical certified scale disclaimer.

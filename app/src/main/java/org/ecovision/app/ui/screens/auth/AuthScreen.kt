@@ -27,6 +27,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
@@ -41,6 +45,16 @@ import org.ecovision.app.ui.components.StatusBadge
 @Composable
 fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
     var isSignUp by remember { mutableStateOf(false) }
+
+    // Dialog states
+    var showTermsModal by remember { mutableStateOf(false) }
+    var showDemoAccountsModal by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val authPrefs = remember { context.getSharedPreferences("ecovision_auth_security", android.content.Context.MODE_PRIVATE) }
+    var failedLoginAttempts by remember { mutableIntStateOf(authPrefs.getInt("failed_attempts", 0)) }
+    var lockoutUntil by remember { mutableLongStateOf(authPrefs.getLong("lockout_until", 0L)) }
+    val isLockedOut = remember(lockoutUntil) { System.currentTimeMillis() < lockoutUntil }
 
     // Sign In state
     var identifier by remember { mutableStateOf("") }
@@ -59,6 +73,8 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
     var newPassword by remember { mutableStateOf("") }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf(UserRole.USER) }
+    var selectedDistrict by remember { mutableStateOf("Malappuram") }
+    var districtExpanded by remember { mutableStateOf(false) }
     var referralCode by remember { mutableStateOf("") }
     var agreedToTerms by remember { mutableStateOf(false) }
 
@@ -187,6 +203,38 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                     // ==========================================
                     Column(modifier = Modifier.fillMaxWidth()) {
                         GlassCard {
+                            if (isLockedOut) {
+                                val remainingHours = ((lockoutUntil - System.currentTimeMillis()) / (1000 * 60 * 60)) + 1
+                                Surface(
+                                    color = Color(0xFF1E293B),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 14.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "Sign In Temporarily Locked",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "5 consecutive failed attempts detected. For security, sign in is locked for 24 hours (approx. $remainingHours hours remaining).",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Slate300,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+
                             Text(
                                 text = when (step) {
                                     1 -> "Account Identification"
@@ -320,29 +368,59 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                     EcoButton(
                                         text = if (isLoading) "Verifying..." else "Sign In",
                                         modifier = Modifier.weight(1.6f),
-                                        enabled = !isLoading && (if (isMobilePath) otpCode.isNotBlank() else password.isNotBlank()),
+                                        enabled = !isLoading && !isLockedOut && (if (isMobilePath) otpCode.isNotBlank() else password.isNotBlank()),
                                         onClick = {
                                             scope.launch {
                                                 isLoading = true
                                                 errorMessage = null
                                                 val clean = identifier.trim()
-                                                val profile = if (isMobilePath) {
-                                                    val formatted = if (clean.startsWith("+91")) clean else "+91${clean.takeLast(10)}"
-                                                    SupabaseClient.findProfileByMobile(formatted)
-                                                } else {
-                                                    SupabaseClient.findProfileByUsername(clean)
+                                                var profile = try {
+                                                    if (isMobilePath) {
+                                                        val formatted = if (clean.startsWith("+91")) clean else "+91${clean.takeLast(10)}"
+                                                        SupabaseClient.findProfileByMobile(formatted)
+                                                    } else {
+                                                        SupabaseClient.findProfileByUsername(clean)
+                                                    }
+                                                } catch (e: Exception) {
+                                                    null
+                                                }
+
+                                                if (profile == null) {
+                                                    profile = SessionManager.getFallbackProfileForIdentifier(clean)
                                                 }
 
                                                 if (profile != null) {
+                                                    // Reset failed login counter on success
+                                                    failedLoginAttempts = 0
+                                                    authPrefs.edit().putInt("failed_attempts", 0).putLong("lockout_until", 0L).apply()
+
+                                                    // Collect & persist device information
+                                                    val devInfo = DeviceLocationHelper.getDeviceInfo()
+                                                    val devIp = DeviceLocationHelper.getDeviceIp()
+                                                    val updatedWithDevice = profile.copy(deviceInfo = devInfo, deviceIp = devIp)
+                                                    SupabaseClient.updateProfile(updatedWithDevice)
+
                                                     if (profile.totpEnabled || profile.emailOtpEnabled) {
                                                         twoFactorType = if (profile.totpEnabled) "totp" else "email_otp"
                                                         step = 3
                                                     } else {
-                                                        SessionManager.setProfile(profile, persist = true)
-                                                        onAuthSuccess(profile)
+                                                        SessionManager.setProfile(updatedWithDevice, persist = true)
+                                                        onAuthSuccess(updatedWithDevice)
                                                     }
                                                 } else {
-                                                    errorMessage = "User account not found. Please check details or use 1-Tap test accounts below."
+                                                    // Increment failed attempt counter
+                                                    failedLoginAttempts++
+                                                    if (failedLoginAttempts >= 5) {
+                                                        lockoutUntil = System.currentTimeMillis() + 86400000L
+                                                        authPrefs.edit()
+                                                            .putInt("failed_attempts", failedLoginAttempts)
+                                                            .putLong("lockout_until", lockoutUntil)
+                                                            .apply()
+                                                        errorMessage = "5 failed attempts reached! Sign in locked for 24 hours."
+                                                    } else {
+                                                        authPrefs.edit().putInt("failed_attempts", failedLoginAttempts).apply()
+                                                        errorMessage = "Account not found or invalid credentials. Attempt $failedLoginAttempts of 5."
+                                                    }
                                                 }
                                                 isLoading = false
                                             }
@@ -375,11 +453,18 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                     onClick = {
                                         scope.launch {
                                             val clean = identifier.trim()
-                                            val profile = if (isMobilePath) {
-                                                val formatted = if (clean.startsWith("+91")) clean else "+91${clean.takeLast(10)}"
-                                                SupabaseClient.findProfileByMobile(formatted)
-                                            } else {
-                                                SupabaseClient.findProfileByUsername(clean)
+                                            var profile = try {
+                                                if (isMobilePath) {
+                                                    val formatted = if (clean.startsWith("+91")) clean else "+91${clean.takeLast(10)}"
+                                                    SupabaseClient.findProfileByMobile(formatted)
+                                                } else {
+                                                    SupabaseClient.findProfileByUsername(clean)
+                                                }
+                                            } catch (e: Exception) {
+                                                null
+                                            }
+                                            if (profile == null) {
+                                                profile = SessionManager.getFallbackProfileForIdentifier(clean)
                                             }
                                             if (profile != null) {
                                                 SessionManager.setProfile(profile, persist = true)
@@ -391,106 +476,29 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // ==========================================
-                        // 1-TAP QUICK TEST ACCOUNTS
-                        // ==========================================
-                        GlassCard {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                        // Discreet 1-tap test credentials modal trigger
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = { showDemoAccountsModal = true },
+                                colors = ButtonDefaults.textButtonColors(contentColor = Slate400)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Science,
                                     contentDescription = null,
                                     tint = LeafCoinGold,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "1-Tap Quick Test Accounts",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "Instantly log in with pre-configured roles to test platform workflows:",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Slate400,
-                                fontSize = 11.sp
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TestAccountRow(
-                                    roleIcon = "🏠",
-                                    roleTitle = "Household User",
-                                    username = "adhil",
-                                    description = "Scan waste, DIY upcycle, P2P bargain, Leaf Coins",
-                                    badgeColor = EcoEmerald400,
-                                    onClick = {
-                                        scope.launch {
-                                            isLoading = true
-                                            SessionManager.switchDemoRole(UserRole.USER)
-                                            val p = SessionManager.currentProfile.value
-                                            if (p != null) onAuthSuccess(p)
-                                            isLoading = false
-                                        }
-                                    }
-                                )
-
-                                TestAccountRow(
-                                    roleIcon = "🚚",
-                                    roleTitle = "Pickup Agent",
-                                    username = "rahul_agent",
-                                    description = "Zone pickups, spot weighing scale, godown entry",
-                                    badgeColor = LeafCoinGold,
-                                    onClick = {
-                                        scope.launch {
-                                            isLoading = true
-                                            SessionManager.switchDemoRole(UserRole.AGENT)
-                                            val p = SessionManager.currentProfile.value
-                                            if (p != null) onAuthSuccess(p)
-                                            isLoading = false
-                                        }
-                                    }
-                                )
-
-                                TestAccountRow(
-                                    roleIcon = "🏭",
-                                    roleTitle = "Buyer Company",
-                                    username = "greenloop_co",
-                                    description = "B2B godown stock feed, bulk lots, ESG offset",
-                                    badgeColor = Color(0xFF60A5FA),
-                                    onClick = {
-                                        scope.launch {
-                                            isLoading = true
-                                            SessionManager.switchDemoRole(UserRole.COMPANY)
-                                            val p = SessionManager.currentProfile.value
-                                            if (p != null) onAuthSuccess(p)
-                                            isLoading = false
-                                        }
-                                    }
-                                )
-
-                                TestAccountRow(
-                                    roleIcon = "🛡️",
-                                    roleTitle = "Super Admin",
-                                    username = "admin",
-                                    description = "Maintenance switchboard, dynamic slabs, KYC desk",
-                                    badgeColor = Color(0xFFF472B6),
-                                    onClick = {
-                                        scope.launch {
-                                            isLoading = true
-                                            SessionManager.switchDemoRole(UserRole.ADMIN)
-                                            val p = SessionManager.currentProfile.value
-                                            if (p != null) onAuthSuccess(p)
-                                            isLoading = false
-                                        }
-                                    }
+                                    text = "⚡ Need 1-Tap Test Accounts? Tap here",
+                                    fontSize = 12.sp,
+                                    color = Slate400
                                 )
                             }
                         }
@@ -539,7 +547,63 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Kerala District Selection Dropdown
+                            Text(
+                                text = "Select District (Kerala)",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Slate300,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = selectedDistrict,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Service District *") },
+                                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = EcoEmerald400) },
+                                    trailingIcon = {
+                                        IconButton(onClick = { districtExpanded = !districtExpanded }) {
+                                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Select District", tint = Color.White)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { districtExpanded = true },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = EcoEmerald500,
+                                        unfocusedBorderColor = CardBorderBright
+                                    )
+                                )
+                                DropdownMenu(
+                                    expanded = districtExpanded,
+                                    onDismissRequest = { districtExpanded = false },
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.9f)
+                                        .background(Slate850)
+                                ) {
+                                    KeralaDistricts.forEach { dist ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = dist,
+                                                    color = if (dist == selectedDistrict) EcoEmerald400 else Color.White,
+                                                    fontWeight = if (dist == selectedDistrict) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            },
+                                            onClick = {
+                                                selectedDistrict = dist
+                                                districtExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
 
                             // Full Name
                             OutlinedTextField(
@@ -774,7 +838,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                 leadingIcon = { Icon(Icons.Default.CardGiftcard, null, tint = LeafCoinGold) },
                                 supportingText = {
                                     if (referralCode.isNotBlank()) {
-                                        Text("🍃 Referral bonus: +50 Leaf Coins upon first collection!", color = LeafCoinGold, fontSize = 11.sp)
+                                        Text("🪙 Referral bonus: +50 Coins upon first collection!", color = LeafCoinGold, fontSize = 11.sp)
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
@@ -824,12 +888,37 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                     colors = CheckboxDefaults.colors(checkedColor = EcoEmerald500)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "I agree to Terms & Conditions and Privacy Policy. I authorize EcoVision to manage recycling logistics data.",
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp,
-                                    color = Slate300
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = buildAnnotatedString {
+                                            append("I agree to ")
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = EcoEmerald400,
+                                                    fontWeight = FontWeight.Bold,
+                                                    textDecoration = TextDecoration.Underline
+                                                )
+                                            ) {
+                                                append("Terms & Conditions")
+                                            }
+                                            append(" and ")
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = EcoEmerald400,
+                                                    fontWeight = FontWeight.Bold,
+                                                    textDecoration = TextDecoration.Underline
+                                                )
+                                            ) {
+                                                append("Privacy Policy")
+                                            }
+                                            append(". I authorize EcoVision to manage recycling logistics data.")
+                                        },
+                                        modifier = Modifier.clickable { showTermsModal = true },
+                                        fontSize = 11.sp,
+                                        lineHeight = 16.sp,
+                                        color = Slate300
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(18.dp))
@@ -855,6 +944,9 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         val clean10 = if (digits.length == 12 && digits.startsWith("91")) digits.drop(2) else digits
                                         val formattedMobile = "+91$clean10"
 
+                                        val devInfo = DeviceLocationHelper.getDeviceInfo()
+                                        val devIp = DeviceLocationHelper.getDeviceIp()
+
                                         val newProfile = Profile(
                                             id = java.util.UUID.randomUUID().toString(),
                                             username = username.ifBlank { null },
@@ -866,8 +958,11 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                             kycStatus = "pending",
                                             kycDocumentType = if (selectedRole == UserRole.COMPANY) "gst" else "aadhaar",
                                             kycDocumentNumber = null, // Collected post-registration
-                                            defaultAddress = "Kochi, Kerala",
-                                            pincode = "682001",
+                                            district = selectedDistrict,
+                                            defaultAddress = "$selectedDistrict, Kerala",
+                                            pincode = if (selectedDistrict == "Malappuram") "676505" else "682001",
+                                            deviceInfo = devInfo,
+                                            deviceIp = devIp,
                                             referralCode = "ECO-" + (1000..9999).random().toString(),
                                             referredBy = referralCode.ifBlank { null },
                                             leafCoins = if (referralCode.isNotBlank()) 100 else 50
@@ -925,6 +1020,197 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    if (showTermsModal) {
+        AlertDialog(
+            onDismissRequest = { showTermsModal = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = EcoEmerald400)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Terms & Privacy Policy",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = "EcoVision Circular Economy Platform Terms",
+                        fontWeight = FontWeight.Bold,
+                        color = EcoEmerald400,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "1. Segregation Standards: All scrap materials submitted through Virtual Bin must match genuine recyclable classes (Plastics, Metals, Paper, E-waste, Glass, Organics).\n\n" +
+                                "2. Digital Weighing Verification: Doorstep pickups require OTP confirmation and verified scale measurements before Coins are credited.\n\n" +
+                                "3. Upcycled Marketplace: Items listed in the green marketplace must adhere to circular design standards. Free delivery is provided on orders of ₹200 and above.\n\n" +
+                                "4. Anti-Fraud Policy: EcoVision administrators reserve the right to audit, suspend, or terminate accounts submitting fraudulent waste weights or unverified credentials.",
+                        color = Slate300,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = CardBorderBright)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "EcoVision Privacy Policy",
+                        fontWeight = FontWeight.Bold,
+                        color = LeafCoinGold,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "1. Geolocation & Dispatch: Location data is accessed solely for routing authorized pickup agents and doorstep verification.\n\n" +
+                                "2. Camera & Image Storage: Camera access is utilized solely for AI waste classification. Scanned photos are cached on your device and never shared with unauthorized third parties.\n\n" +
+                                "3. Privacy & Proof Auto-Delete: All government ID proofs, driving licenses, vehicle photos, and business documents submitted for KYC verification are automatically and permanently deleted from our servers immediately upon verification by EcoVision compliance officers.\n\n" +
+                                "4. Cloud Vault Encryption: User profiles, transactions, and credentials are protected with end-to-end encrypted security architecture. We never sell user data.",
+                        color = Slate300,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        agreedToTerms = true
+                        showTermsModal = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600)
+                ) {
+                    Text("Agree & Accept", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTermsModal = false }) {
+                    Text("Close", color = Slate400)
+                }
+            },
+            containerColor = Slate850,
+            tonalElevation = 6.dp
+        )
+    }
+
+    if (showDemoAccountsModal) {
+        AlertDialog(
+            onDismissRequest = { showDemoAccountsModal = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Science, contentDescription = null, tint = LeafCoinGold)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "1-Tap Quick Test Accounts",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Tap any role to immediately sign in and evaluate platform features:",
+                        fontSize = 11.sp,
+                        color = Slate400
+                    )
+
+                    TestAccountRow(
+                        roleIcon = "🏠",
+                        roleTitle = "Household User",
+                        username = "adhil",
+                        description = "Scan scrap, DIY upcycle, P2P bargain, Coins",
+                        badgeColor = EcoEmerald400,
+                        onClick = {
+                            showDemoAccountsModal = false
+                            scope.launch {
+                                isLoading = true
+                                SessionManager.switchDemoRole(UserRole.USER)
+                                val p = SessionManager.currentProfile.value
+                                if (p != null) onAuthSuccess(p)
+                                isLoading = false
+                            }
+                        }
+                    )
+
+                    TestAccountRow(
+                        roleIcon = "🚚",
+                        roleTitle = "Pickup Agent",
+                        username = "rahul_agent",
+                        description = "Zone pickups, spot weighing scale, godown entry",
+                        badgeColor = LeafCoinGold,
+                        onClick = {
+                            showDemoAccountsModal = false
+                            scope.launch {
+                                isLoading = true
+                                SessionManager.switchDemoRole(UserRole.AGENT)
+                                val p = SessionManager.currentProfile.value
+                                if (p != null) onAuthSuccess(p)
+                                isLoading = false
+                            }
+                        }
+                    )
+
+                    TestAccountRow(
+                        roleIcon = "🏭",
+                        roleTitle = "Buyer Company",
+                        username = "greenloop_co",
+                        description = "B2B godown stock feed, bulk lots, ESG offset",
+                        badgeColor = Color(0xFF60A5FA),
+                        onClick = {
+                            showDemoAccountsModal = false
+                            scope.launch {
+                                isLoading = true
+                                SessionManager.switchDemoRole(UserRole.COMPANY)
+                                val p = SessionManager.currentProfile.value
+                                if (p != null) onAuthSuccess(p)
+                                isLoading = false
+                            }
+                        }
+                    )
+
+                    TestAccountRow(
+                        roleIcon = "🛡️",
+                        roleTitle = "Super Admin",
+                        username = "admin",
+                        description = "Maintenance switchboard, dynamic slabs, KYC desk",
+                        badgeColor = Color(0xFFF472B6),
+                        onClick = {
+                            showDemoAccountsModal = false
+                            scope.launch {
+                                isLoading = true
+                                SessionManager.switchDemoRole(UserRole.ADMIN)
+                                val p = SessionManager.currentProfile.value
+                                if (p != null) onAuthSuccess(p)
+                                isLoading = false
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDemoAccountsModal = false }) {
+                    Text("Cancel", color = Slate400)
+                }
+            },
+            containerColor = Slate850,
+            tonalElevation = 6.dp
+        )
     }
 }
 
