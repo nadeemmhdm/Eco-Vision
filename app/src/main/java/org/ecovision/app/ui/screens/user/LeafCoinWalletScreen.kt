@@ -1,5 +1,8 @@
 package org.ecovision.app.ui.screens.user
 
+import android.content.ClipData
+import android.content.ClipboardManager as AndroidClipboardManager
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,8 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,9 +38,9 @@ import java.util.UUID
 
 @Composable
 fun LeafCoinWalletScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val profile by SessionManager.currentProfile.collectAsState()
     val scope = rememberCoroutineScope()
-    val clipboardManager = LocalClipboardManager.current
 
     var transactions by remember { mutableStateOf<List<LeafCoinTransaction>>(emptyList()) }
     var availableVouchers by remember { mutableStateOf<List<EcoVoucher>>(emptyList()) }
@@ -406,7 +408,8 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
                                             }
                                             IconButton(onClick = {
                                                 red.voucherDetails?.let { code ->
-                                                    clipboardManager.setText(AnnotatedString(code))
+                                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? AndroidClipboardManager
+                                                    clipboard?.setPrimaryClip(ClipData.newPlainText("Voucher Code", code))
                                                     statusMessage = "Copied voucher code to clipboard!"
                                                 }
                                             }) {
