@@ -24,14 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import org.ecovision.app.data.AgentDetails
-import org.ecovision.app.data.CompanyDetails
-import org.ecovision.app.data.SessionManager
-import org.ecovision.app.data.SupabaseClient
+import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
-import org.ecovision.app.ui.components.EcoButton
-import org.ecovision.app.ui.components.GlassCard
-import org.ecovision.app.ui.components.StatusBadge
+import org.ecovision.app.ui.components.*
 
 @Composable
 fun ProfileScreen(
