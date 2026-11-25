@@ -862,7 +862,13 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                         colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                         enabled = newImages.isNotEmpty() && newTitle.isNotBlank() && newPrice.isNotBlank(),
                         onClick = {
-                            val seller = profile ?: Profile(id = "user-adhil", username = "adhil", role = "user")
+                            val seller = profile ?: Profile(
+                                id = "user-adhil",
+                                username = "adhil",
+                                fullName = "Adhil Muhammed",
+                                mobile = "9876543210",
+                                role = "user"
+                            )
                             val product = MarketplaceProduct(
                                 id = UUID.randomUUID().toString(),
                                 sellerId = seller.id,

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -775,7 +776,7 @@ fun UserHomeScreen(
                         IconButton(
                             onClick = {
                                 if (inputChatMessage.isNotBlank()) {
-                                    chatMessages = chatMessages + (profile?.fullName ?: "You" to inputChatMessage)
+                                    chatMessages = chatMessages + ((profile?.fullName ?: "You") to inputChatMessage)
                                     inputChatMessage = ""
                                 }
                             }
@@ -966,18 +967,21 @@ fun UserHomeScreen(
                     onClick = {
                         scope.launch {
                             if (profile != null) {
-                                val newPickup = PickupRequest(
-                                    id = UUID.randomUUID().toString(),
+                                val addr = detectedAddress ?: profile!!.defaultAddress ?: "Malappuram, Kerala"
+                                val pcode = profile!!.pincode ?: "676505"
+                                val weight = 12.0
+                                val amount = if (virtualBinValue > 0) virtualBinValue else 240.0
+                                val created = SupabaseClient.createPickupRequest(
                                     userId = profile!!.id,
-                                    pickupAddress = detectedAddress ?: profile!!.defaultAddress ?: "Malappuram, Kerala",
-                                    status = "agent_assigned",
-                                    assignedAgentId = "00000000-0000-0000-0000-000000000003",
-                                    scheduledDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date()),
-                                    scheduledSlot = pickupSlot,
-                                    totalEstimatedPrice = if (virtualBinValue > 0) virtualBinValue else 240.0,
-                                    totalEstimatedWeight = 12.0
+                                    pincode = pcode,
+                                    address = addr,
+                                    totalWeight = weight,
+                                    totalAmount = amount,
+                                    binItemIds = emptyList()
                                 )
-                                SupabaseClient.createPickupRequest(newPickup)
+                                if (created != null) {
+                                    activePickup = created
+                                }
                                 loadUserData()
                                 showSchedulePickupModal = false
                                 statusMessage = "Pickup scheduled successfully for $pickupSlot!"
