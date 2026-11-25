@@ -307,7 +307,7 @@ fun ProfileScreen(
                             try {
                                 val shareDir = File(context.cacheDir, "share_images").apply { mkdirs() }
                                 val logoFile = File(shareDir, "ecovision_logo.png")
-                                val bmp = BitmapFactory.decodeResource(context.resources, R.drawable.ic_ecovision_truck)
+                                val bmp = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
                                 if (bmp != null) {
                                     FileOutputStream(logoFile).use { out ->
                                         bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
