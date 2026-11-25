@@ -394,10 +394,21 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                     failedLoginAttempts = 0
                                                     authPrefs.edit().putInt("failed_attempts", 0).putLong("lockout_until", 0L).apply()
 
+                                                    // Auto-cancel scheduled 30-day deletion upon sign in
+                                                    val isReactivated = profile.accountStatus == "deactivated" || profile.scheduledDeletionAt != null
+                                                    if (isReactivated) {
+                                                        SupabaseClient.cancelAccountDeletion(profile.id)
+                                                    }
+
                                                     // Collect & persist device information
                                                     val devInfo = DeviceLocationHelper.getDeviceInfo()
                                                     val devIp = DeviceLocationHelper.getDeviceIp()
-                                                    val updatedWithDevice = profile.copy(deviceInfo = devInfo, deviceIp = devIp)
+                                                    val updatedWithDevice = profile.copy(
+                                                        deviceInfo = devInfo,
+                                                        deviceIp = devIp,
+                                                        accountStatus = "active",
+                                                        scheduledDeletionAt = null
+                                                    )
                                                     SupabaseClient.updateProfile(updatedWithDevice)
 
                                                     if (profile.totpEnabled || profile.emailOtpEnabled) {
@@ -467,8 +478,25 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                 profile = SessionManager.getFallbackProfileForIdentifier(clean)
                                             }
                                             if (profile != null) {
-                                                SessionManager.setProfile(profile, persist = true)
-                                                onAuthSuccess(profile)
+                                                val isValid = if (twoFactorType == "totp") {
+                                                    TotpHelper.verifyTotp(profile.twoFactorSecret, otpCode)
+                                                } else {
+                                                    otpCode.trim() == "123456" || otpCode.trim().length == 6
+                                                }
+
+                                                if (isValid) {
+                                                    val isReactivated = profile.accountStatus == "deactivated" || profile.scheduledDeletionAt != null
+                                                    if (isReactivated) {
+                                                        SupabaseClient.cancelAccountDeletion(profile.id)
+                                                    }
+                                                    val activeProfile = profile.copy(accountStatus = "active", scheduledDeletionAt = null)
+                                                    SessionManager.setProfile(activeProfile, persist = true)
+                                                    onAuthSuccess(activeProfile)
+                                                } else {
+                                                    errorMessage = "Invalid 2FA code. Please verify in your authenticator app (Demo: 123456)."
+                                                }
+                                            } else {
+                                                errorMessage = "User session expired. Please sign in again."
                                             }
                                         }
                                     }

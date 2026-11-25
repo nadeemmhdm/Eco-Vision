@@ -13,8 +13,8 @@ android {
         applicationId = "org.ecovision.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.4"
+        versionCode = 5
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,6 +23,8 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"https://uarkttbfqmfgcewddvtn.supabase.co\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcmt0dGJmcW1mZ2Nld2RkdnRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NjA1MjYsImV4cCI6MjEwMTAzNjUyNn0.PLuujmtJ4AlQoI2q3xYoV-EBbtbO1sjIqde72GocVB0\"")
+        buildConfigField("String", "AI_GATEWAY_URL", "\"https://ai-gateway-platform.mhdysn313.workers.dev/v1/chat/completions\"")
+        buildConfigField("String", "AI_GATEWAY_KEY", "\"app_NftMOURzTebhtIAhgz_gLeOZPGEOHqXB\"")
     }
 
     buildTypes {

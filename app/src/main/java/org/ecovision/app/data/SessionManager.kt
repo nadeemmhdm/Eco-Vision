@@ -196,11 +196,17 @@ object SessionManager {
         setProfile(found, persist = true)
     }
 
+    fun updateCurrentProfile(updated: Profile) {
+        _currentProfile.value = updated
+    }
+
     suspend fun refreshProfile() {
         val curr = _currentProfile.value ?: return
         val fresh = SupabaseClient.findProfileByMobile(curr.mobile)
         if (fresh != null) {
-            setProfile(fresh, persist = true)
+            // Respect locally deducted coins if more recent
+            val resolvedCoins = if (fresh.leafCoins < curr.leafCoins) fresh.leafCoins else curr.leafCoins
+            setProfile(fresh.copy(leafCoins = resolvedCoins), persist = true)
         }
     }
 

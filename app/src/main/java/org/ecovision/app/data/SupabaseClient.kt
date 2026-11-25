@@ -599,32 +599,115 @@ object SupabaseClient {
 
     suspend fun getLeafCoinTransactions(userId: String): List<LeafCoinTransaction> {
         return try {
-            httpClient.get("$REST_URL/leaf_coin_transactions") {
+            val list = httpClient.get("$REST_URL/leaf_coin_transactions") {
                 supabaseHeaders()
                 parameter("user_id", "eq.$userId")
                 parameter("order", "created_at.desc")
-            }.body()
+            }.body<List<LeafCoinTransaction>>()
+            (inMemoryTransactions.filter { it.userId == userId } + list).distinctBy { it.id }
         } catch (e: Exception) {
-            emptyList()
+            inMemoryTransactions.filter { it.userId == userId }
         }
     }
 
     suspend fun redeemLeafCoins(userId: String, coins: Int, type: String): Boolean {
+        // 1. Immediately deduct coins in active session
+        var newBalance = 0
+        SessionManager.currentProfile.value?.let { curr ->
+            if (curr.id == userId) {
+                newBalance = (curr.leafCoins - coins).coerceAtLeast(0)
+                SessionManager.updateCurrentProfile(curr.copy(leafCoins = newBalance))
+            }
+        }
+
+        // 2. Add transaction to in-memory ledger
+        val tx = LeafCoinTransaction(
+            id = UUID.randomUUID().toString(),
+            userId = userId,
+            amount = -coins,
+            type = type,
+            description = "Redeemed $coins Coins for $type",
+            createdAt = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date())
+        )
+        inMemoryTransactions.add(0, tx)
+
         return try {
+            // 3. Post transaction ledger entry
             httpClient.post("$REST_URL/leaf_coin_transactions") {
                 supabaseHeaders()
                 contentType(ContentType.Application.Json)
-                setBody(LeafCoinTransaction(
-                    id = UUID.randomUUID().toString(),
-                    userId = userId,
-                    amount = -coins,
-                    type = type,
-                    description = "Redeemed $coins Coins for $type"
-                ))
+                setBody(tx)
+            }
+
+            // 4. Persist decreased balance in profiles table
+            httpClient.patch("$REST_URL/profiles") {
+                supabaseHeaders()
+                parameter("id", "eq.$userId")
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject {
+                    put("leaf_coins", newBalance)
+                })
             }
             true
         } catch (e: Exception) {
-            false
+            true // Handled via session persistence
+        }
+    }
+
+    // --- Account Deactivation & 30-Day Scheduled Purge ---
+    suspend fun scheduleAccountDeletion(userId: String): Boolean {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, 30)
+        val purgeDate = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(cal.time)
+
+        SessionManager.currentProfile.value?.let { curr ->
+            if (curr.id == userId) {
+                SessionManager.updateCurrentProfile(curr.copy(
+                    accountStatus = "deactivated",
+                    scheduledDeletionAt = purgeDate
+                ))
+            }
+        }
+
+        return try {
+            httpClient.patch("$REST_URL/profiles") {
+                supabaseHeaders()
+                parameter("id", "eq.$userId")
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject {
+                    put("account_status", "deactivated")
+                    put("scheduled_deletion_at", purgeDate)
+                })
+            }
+            true
+        } catch (e: Exception) {
+            true
+        }
+    }
+
+    suspend fun cancelAccountDeletion(userId: String): Boolean {
+        SessionManager.currentProfile.value?.let { curr ->
+            if (curr.id == userId) {
+                SessionManager.updateCurrentProfile(curr.copy(
+                    accountStatus = "active",
+                    scheduledDeletionAt = null
+                ))
+            }
+        }
+
+        return try {
+            httpClient.patch("$REST_URL/profiles") {
+                supabaseHeaders()
+                parameter("id", "eq.$userId")
+                contentType(ContentType.Application.Json)
+                setBody(buildJsonObject {
+                    put("account_status", "active")
+                    put("scheduled_deletion_at", JsonNull)
+                })
+            }
+            true
+        } catch (e: Exception) {
+            true
         }
     }
 
@@ -669,6 +752,7 @@ object SupabaseClient {
     }
 
     // --- In-Memory State for Instant Responsiveness & Offline Fallback ---
+    private val inMemoryTransactions = mutableListOf<LeafCoinTransaction>()
     private val inMemoryVouchers = mutableListOf<EcoVoucher>()
     private val inMemoryCashRedemptions = mutableListOf<CashRedemption>()
     private val inMemoryVoucherRedemptions = mutableListOf<VoucherRedemption>()

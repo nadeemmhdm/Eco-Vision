@@ -78,49 +78,54 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.4
-          name: EcoVision Release v1.0.4
+          tag_name: v1.0.5
+          name: EcoVision Release v1.0.5
           draft: false
           prerelease: false
           body: |
-            ### 🪙 EcoVision Release v1.0.4 (Latest APK)
+            ### 🪙 EcoVision Release v1.0.5 (Latest APK)
 
             Complete AI-Powered Smart Waste Management, Circular Economy & Rewards Wallet Platform for Android.
 
-            #### 🚀 What's New in v1.0.4:
-            - **🪙 Custom Coin with Centered Leaf Emblem**:
-              - Custom minted circular coin badge with metallic bevel, inner milled concentric ring, and an organic emerald leaf emblem centered in the coin.
-              - Uniformly used across Wallet, Header, Profile, and Activity Ledgers.
-            - **💼 Dedicated Wallet & 10 Coins = ₹1.00 Valuation**:
-              - Page officially renamed to **"Wallet"**.
-              - Real-world conversion rate: **10 Coins = ₹1.00** (e.g. 100 Coins = ₹10.00, 500 Coins = ₹50.00).
-              - Shows total coin balance and instant redeemable cash value.
-            - **💸 Coins Cash Redeem via UPI**:
-              - Direct UPI cash redemption with Holder Name and VPA validation.
-              - Instant coin deduction and placement into UPI settlement waiting list queue.
-              - Admin reviews and marks cash settlement completed.
-            - **🎁 Admin-Added Partner Vouchers**:
-              - Super Admin can create and list promotional discount vouchers collecting: Voucher Name, Image URL, Description, and Voucher Coins Price.
-              - Seamlessly published to all user wallets.
-            - **🎟️ Voucher Redemption Waiting List & Digital Fulfillment**:
-              - User redeems voucher with coins -> Coins are deducted immediately and request enters the Waiting List.
-              - Admin views pending voucher requests in **Voucher Redemption Requests Desk**.
-              - Admin enters digital voucher code & instructions and clicks **"Submit & Push to User"**.
-              - Code appears instantly in the user's Wallet with one-tap copy and confirmation note that it's delivered to the user's email.
-            - **📍 Kerala 14 Districts & Location Access (Malappuram Pilot)**:
-              - App checks GPS location on start and home screen; prompts user to turn ON location if disabled.
-              - Kerala district selection (all 14 districts) during sign-up.
-              - Friendly notice card for non-Malappuram users: *"Service is not available in your area yet. We will notify you once service starts in your area!"*
-            - **📱 Device Intelligence**: Collects device model, manufacturer, OS version, and IP during auth.
-            - **🛡️ Auto-Delete Verification Proofs**: Identity proofs and vehicle photos are permanently deleted from database and storage upon Admin verification.
-            - **🚫 Rejection Reason & 5-Attempt Cooldown**:
-              - Admin selects specific KYC rejection reasons.
-              - Users view reason and can reapply (max 5 attempts, then 24-hour cooldown lock).
-            - **🔒 Auth Rate Limiting**: Max 5 failed login attempts triggers a 24-hour lockout.
-            - **🎨 Clean Monochrome Animations & UI/UX**:
-              - Sleek dark theme (`#050811`), crisp contrast, smooth micro-interactions.
-              - Zero colorful / likee animations; clean minimalist transitions.
-              - Removed all mentions of "Supabase" and "Leaf Coins" across all screens and user-facing text.
+            #### 🚀 What's New in v1.0.5:
+            - **🤖 AI Gateway Integration & Cloud Multimodal Vision**:
+              - Connected to `https://ai-gateway-platform.mhdysn313.workers.dev/v1/chat/completions`.
+              - Powered by API key `app_NftMOURzTebhtIAhgz_gLeOZPGEOHqXB` with OpenAI-compatible multimodal chat completions (`model: "auto"`).
+              - Analyzes scrap photos for material grade, recyclable status, estimated base price, and DIY upcycling recommendations.
+              - In-app key configuration dialog with zero-latency fallback engine.
+            - **🛡️ Real Working 2FA TOTP Model**:
+              - Standard RFC 6238 TOTP engine compatible with Google Authenticator, Microsoft Authenticator, and Authy.
+              - Base32 secret key generation, 1-tap clipboard copy, 6-digit confirmation verification, and database persistence.
+            - **📑 Section-by-Section Profile Page ("Akki" Design)**:
+              - Structured into 8 clear, numbered modules:
+                - `01`: User Identity & Verification
+                - `02`: Eco Coins & Wallet Desk (featuring `EcoCoinIcon`, live balance, ₹ valuation)
+                - `03`: Two-Factor Authentication (2FA TOTP) Security Center
+                - `04`: KYC Verification Desk (status, admin rejection reasons, 5-attempt limit, 24-hr cooldown, auto-delete guarantee)
+                - `05`: Pickup Agent Vehicle Desk (for Agent role: `KL-07-AB-1234`, vehicle change requests)
+                - `06`: Service District & Address (Kerala 14 districts, Malappuram active pilot zone)
+                - `07`: Security & Device Compliance (device info, IP, privacy policy, terms)
+                - `08`: Danger Zone: 30-Day Inactive Account Deletion
+            - **⏳ Account Deletion with 30-Day Inactive Grace Period**:
+              - Schedules profile for permanent database purge after 30 days of inactivity.
+              - Signing in anytime within the 30-day window automatically cancels the deletion and restores active status.
+            - **🚚 Live Pickup Tracking Card (Matching Reference Image 3)**:
+              - Scheduled slot header banner with "✓ On Time" badge.
+              - 4-step horizontal stepper: `Request Placed` -> `Agent Assigned` -> `On the Way` -> `Arriving Soon`.
+              - Interactive Route card with road path, moving delivery truck, destination pin, and floating ETA pill ("Arriving in 12 min").
+              - Driver profile (Rafiq Khan, 4.8 stars) + Vehicle badge (`KL-07-AB-1234`, Green Van).
+              - Quick action pills: Call, Chat, Verify Vehicle / Doorstep Weigh.
+            - **📱 User Home & AI Scanner Redesign (Matching Reference Images 1 & 2)**:
+              - Curved emerald green header with bold "122 Items" recycled headline.
+              - 3 Circular percentage gauges: Recycled (65%), Compost (5%), Rubbish (2%).
+              - Search bar and "Recycle Again" cards.
+              - 6 Top Categories photo grid: Paper, Foil, Cardboard, Drink cans, Plastic Bottles, Glass.
+              - Camera viewfinder with corner brackets `[  ]`, centered reticle prompt, vibrant green "Start Scan" button, material table, curbside pickup card, and drop-off depots.
+            - **🪙 Coin Balance Decrease & Persistence Fix**:
+              - Instant local and cloud coin deduction upon redeeming UPI cash or claiming partner vouchers.
+            - **🎨 Consistent Emerald & Monochrome Design**:
+              - Zero mentions of "Supabase" and "Leaf Coins".
+              - Professional dark palette (`#050811`, `#15803D`, `#16A34A`, `#10B981`) across all screens.
 
             #### 🚀 What's New in v1.0.2:
             - **📷 First-Time Camera Access & Device Storage**: Runtime camera permissions (`rememberLauncherForActivityResult`), photo capture (`TakePicturePreview`), gallery image picking, and local device image caching (`cacheDir/waste_scans/`).

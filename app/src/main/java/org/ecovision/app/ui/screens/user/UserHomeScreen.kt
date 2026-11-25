@@ -4,18 +4,20 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,6 +59,7 @@ fun UserHomeScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isLocationEnabled by remember { mutableStateOf(DeviceLocationHelper.isLocationEnabled(context)) }
     var detectedAddress by remember { mutableStateOf<String?>(profile?.defaultAddress) }
+    var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     // Location Permission Launcher
@@ -91,7 +94,6 @@ fun UserHomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        // Request location access on start
         val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (finePerm != PackageManager.PERMISSION_GRANTED && coarsePerm != PackageManager.PERMISSION_GRANTED) {
@@ -123,178 +125,247 @@ fun UserHomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate900)
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+            .background(Slate900),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // ==========================================
+        // 1. TOP CURVED EMERALD HEADER (Matching Image 2)
+        // ==========================================
         item {
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // 1. Device Location Off Notification Banner
-            if (!isLocationEnabled) {
-                Surface(
-                    color = Color(0xFF18181B),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF15803D), Color(0xFF16A34A), Color(0xFF10B981))
+                        )
+                    )
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+            ) {
+                Column {
+                    // Header Bar (Name, Coins Badge)
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.LocationOff, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column {
                             Text(
-                                text = "Device Location is Turned Off",
-                                style = MaterialTheme.typography.titleSmall,
+                                text = "Hi ${profile?.fullName?.split(" ")?.firstOrNull() ?: "Eco Hero"}!",
+                                style = MaterialTheme.typography.headlineMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Please turn ON device location to detect your service zone and auto-fill collection addresses.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Slate400,
-                                fontSize = 11.sp
+                                text = "You've correctly recycled",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Button(
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                } catch (e: Exception) { }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+
+                        // Coins Badge Pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.Black.copy(alpha = 0.25f))
+                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                .clickable { onNavigateToWallet() }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Turn ON", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                EcoCoinIcon(size = 18.dp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "${profile?.leafCoins ?: 0}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = LeafCoinGold,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
 
-            // 2. Service Availability in Kerala Pilot Zones
-            if (!isServiceAvailable) {
-                Surface(
-                    color = Color(0xFF18181B),
-                    shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Service Not Available in Your Area Yet",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Doorstep collection operations are expanding across Kerala. Your location in ${profile?.district ?: "this district"} is saved, and we will notify you immediately once service starts in your area!",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Slate300,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+                    Spacer(modifier = Modifier.height(10.dp))
 
-            // KYC Status Notice
-            if (profile?.kycStatus == "pending") {
-                Surface(
-                    color = Color(0xFF1E293B),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    // "122 Items" Headline
+                    Text(
+                        text = "122 Items",
+                        fontSize = 32.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 3 Circular Percentage Gauges (Image 2)
                     Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Icon(Icons.Default.HourglassTop, null, tint = LeafCoinGold, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "KYC Verification Pending",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = LeafCoinGold
-                            )
-                            Text(
-                                text = "Admin is reviewing your Aadhaar / ID details.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Slate400
-                            )
-                        }
+                        CircularPercentGauge(percent = 65, label = "Recycled", ringColor = Color(0xFF22C55E))
+                        CircularPercentGauge(percent = 5, label = "Compost", ringColor = Color(0xFF06B6D4))
+                        CircularPercentGauge(percent = 2, label = "Rubbish", ringColor = Color(0xFFEF4444))
                     }
                 }
             }
         }
 
-        // Quick Stats Hero Card
+        // ==========================================
+        // 2. SEARCH & RECYCLE ACTIONS
+        // ==========================================
         item {
-            GlassCard(
-                backgroundColor = Slate850,
-                borderColor = CardBorder
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Row(
+                // Search Bar (Matching Image 2)
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search for an item to recycle...", color = Slate400, fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = EcoEmerald400) },
+                    trailingIcon = {
+                        IconButton(onClick = onNavigateToScan) {
+                            Icon(Icons.Default.QrCodeScanner, null, tint = EcoEmerald400)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Hello, ${profile?.fullName?.split(" ")?.firstOrNull() ?: "Eco Hero"} 👋",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Area: ${profile?.pincode ?: "682001"} · Verified Household",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate400
-                        )
-                    }
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = Slate850,
+                        unfocusedContainerColor = Slate850,
+                        focusedBorderColor = EcoEmerald400,
+                        unfocusedBorderColor = CardBorderBright,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    singleLine = true
+                )
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(LeafCoinGold.copy(alpha = 0.15f))
-                            .border(1.dp, LeafCoinGold.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
-                            .clickable { onNavigateToWallet() }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center
+                // Location Banners (Location Off / Kerala District Status)
+                if (!isLocationEnabled) {
+                    Surface(
+                        color = Color(0xFF18181B),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            EcoCoinIcon(size = 18.dp)
-                            Spacer(modifier = Modifier.width(6.dp))
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.LocationOff, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "${profile?.leafCoins ?: 0}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = LeafCoinGold,
-                                fontWeight = FontWeight.Bold
+                                text = "Device Location is Turned Off · Turn ON for auto-collection",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(
+                                onClick = {
+                                    try { context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) } catch (e: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text("Turn ON", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                if (!isServiceAvailable) {
+                    Surface(
+                        color = Color(0xFF18181B),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Schedule, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Service expanding in ${profile?.district ?: "Kerala"}. Location saved — we will notify you when collection starts!",
+                                color = Slate300,
+                                fontSize = 11.sp
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                // "Recycle Again" Quick Items (Image 2)
+                Text(
+                    text = "Recycle Again",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
 
-                // Virtual Bin Quick Peek
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    RecycleAgainCard(title = "Bread Bag", bin = "Green Caddy", binColor = EcoEmerald400, icon = Icons.Default.Fastfood)
+                    RecycleAgainCard(title = "AA Battery", bin = "Metcalf Way", binColor = LeafCoinGold, icon = Icons.Default.BatteryChargingFull)
+                    RecycleAgainCard(title = "Water Bottle", bin = "Red Bin", binColor = CoralRed, icon = Icons.Default.LocalDrink)
+                    RecycleAgainCard(title = "Amazon Box", bin = "Blue Bin", binColor = TechBlue, icon = Icons.Default.Inventory2)
+                }
+
+                // "Top Categories" (6 Photo Cards from Image 2)
+                Text(
+                    text = "Top Categories",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        CategoryGridCard(title = "Paper", icon = Icons.Default.Description, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                        CategoryGridCard(title = "Foil", icon = Icons.Default.Layers, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        CategoryGridCard(title = "Cardboard", icon = Icons.Default.Inventory, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                        CategoryGridCard(title = "Drink Cans", icon = Icons.Default.LocalBar, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        CategoryGridCard(title = "Plastic Bottles", icon = Icons.Default.LocalDrink, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                        CategoryGridCard(title = "Glass", icon = Icons.Default.WineBar, modifier = Modifier.weight(1f), onClick = onNavigateToScan)
+                    }
+                }
+
+                // Recycling Bins Guide Row (Image 2)
+                Text(
+                    text = "Recycling Bins Guide",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    BinGuidePill(title = "Green Bin", subtitle = "Organics", color = EcoEmerald400, modifier = Modifier.weight(1f))
+                    BinGuidePill(title = "Red Bin", subtitle = "Haz / E-Waste", color = CoralRed, modifier = Modifier.weight(1f))
+                    BinGuidePill(title = "Blue Bin", subtitle = "Dry Paper/Glass", color = TechBlue, modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Virtual Bin Peek Bar
                 Surface(
-                    color = Slate800,
+                    color = Slate850,
                     shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onNavigateToBin() }
@@ -348,248 +419,202 @@ fun UserHomeScreen(
             }
         }
 
-        // 4 Core Action Hub
+        // ==========================================
+        // 3. LIVE PICKUP TRACKING (Image 3)
+        // ==========================================
         item {
-            Text(
-                text = "Eco Action Hub",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Track Your Pickup",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                HubCard(
-                    title = "AI Waste Scanner",
-                    subtitle = "Scan & Upcycle",
-                    icon = Icons.Default.CameraAlt,
-                    color = EcoEmerald500,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToScan
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                HubCard(
-                    title = "Virtual Bin",
-                    subtitle = "Request Pickup",
-                    icon = Icons.Default.Inventory2,
-                    color = TechBlue,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToBin
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                HubCard(
-                    title = "Upcycled Store",
-                    subtitle = "P2P Bargain",
-                    icon = Icons.Default.Storefront,
-                    color = AiViolet,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToMarketplace
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                HubCard(
-                    title = "Wallet",
-                    subtitle = "Coins & Vouchers",
-                    icon = Icons.Default.AccountBalanceWallet,
-                    color = LeafCoinGold,
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateToWallet
-                )
-            }
-        }
+                if (activePickups.isEmpty()) {
+                    // Modern Live Tracking Card with Active Demonstration (Matching Image 3)
+                    Image3PickupLiveCard(
+                        scheduledSlot = "Today, 4:00 PM - 5:00 PM",
+                        isOnTime = true,
+                        step = 3,
+                        etaMinutes = 12,
+                        agentName = "Rafiq Khan",
+                        agentRole = "Pickup Agent",
+                        agentRating = "4.8 (124 ratings)",
+                        vehiclePlate = "KL-07-AB-1234",
+                        vehicleType = "Green Van",
+                        addressText = detectedAddress ?: "Civil Station, Malappuram",
+                        onCallClick = { /* Call action */ },
+                        onChatClick = { /* Chat action */ },
+                        onVerifyClick = { onNavigateToBin() },
+                        verifyButtonText = "Doorstep Match"
+                    )
+                } else {
+                    for (pickup in activePickups) {
+                        val currentStep = when (pickup.status) {
+                            "requested" -> 1
+                            "agent_assigned" -> 2
+                            "at_doorstep" -> 3
+                            "spot_weighed", "completed" -> 4
+                            else -> 2
+                        }
 
-        // Active Pickup Tracker & Doorstep Security
-        item {
-            Text(
-                text = "Pickup Tracking & Doorstep Security",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        if (activePickups.isEmpty()) {
-            item {
-                GlassCard {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.LocalShipping, null, tint = Slate500, modifier = Modifier.size(36.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "No Active Pickup Requests",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Slate300
+                        Image3PickupLiveCard(
+                            scheduledSlot = "Today, 4:00 PM - 5:00 PM",
+                            isOnTime = true,
+                            step = currentStep,
+                            etaMinutes = if (pickup.status == "at_doorstep") 0 else 12,
+                            agentName = "Rafiq Khan",
+                            agentRole = "Pickup Agent",
+                            agentRating = "4.8 (124 ratings)",
+                            vehiclePlate = "KL-07-AB-1234",
+                            vehicleType = "Green Van",
+                            addressText = pickup.pickupAddress,
+                            onCallClick = { /* Call */ },
+                            onChatClick = { /* Chat */ },
+                            onVerifyClick = {
+                                if (pickup.status == "completed") {
+                                    onNavigateToRate(pickup.id)
+                                } else {
+                                    onNavigateToDoorstep(pickup.id)
+                                }
+                            },
+                            verifyButtonText = if (pickup.status == "completed") "Rate Agent" else "Verify Vehicle"
                         )
-                        Text(
-                            text = "Scan recyclables into your Virtual Bin to request local doorstep pickup.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate500
-                        )
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
             }
-        } else {
-            items(activePickups) { pickup ->
-                PickupTrackingCard(
-                    pickup = pickup,
-                    onDoorstepClick = { onNavigateToDoorstep(pickup.id) },
-                    onRateClick = { onNavigateToRate(pickup.id) }
-                )
-            }
         }
 
-        item { Spacer(modifier = Modifier.height(30.dp)) }
+        item { Spacer(modifier = Modifier.height(28.dp)) }
     }
 }
 
 @Composable
-fun HubCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
+private fun CircularPercentGauge(percent: Int, label: String, ringColor: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(4.dp, ringColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$percent%",
+                fontSize = 17.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun RecycleAgainCard(title: String, bin: String, binColor: Color, icon: ImageVector) {
     Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
-            .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
-        color = Slate850
+        color = Slate850,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+        modifier = Modifier.width(130.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(color.copy(alpha = 0.15f)),
+                    .clip(CircleShape)
+                    .background(Slate800),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+                Icon(icon, null, tint = binColor, modifier = Modifier.size(22.dp))
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                color = binColor.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    text = "📍 $bin",
+                    color = binColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryGridCard(
+    title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = Slate850,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+        modifier = modifier.clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(EcoEmerald600.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = EcoEmerald400, modifier = Modifier.size(20.dp))
+            }
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
                 color = Color.White,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = Slate400
             )
         }
     }
 }
 
 @Composable
-fun PickupTrackingCard(
-    pickup: PickupRequest,
-    onDoorstepClick: () -> Unit,
-    onRateClick: () -> Unit
-) {
-    val statusColor = when (pickup.status) {
-        "requested" -> LeafCoinGold
-        "agent_assigned" -> TechBlue
-        "at_doorstep" -> AiViolet
-        "spot_weighed" -> EcoEmerald400
-        "completed" -> EcoEmerald500
-        else -> Slate400
-    }
-
-    GlassCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+private fun BinGuidePill(title: String, subtitle: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        color = Slate850,
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.35f)),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            StatusBadge(text = pickup.status.uppercase().replace("_", " "), color = statusColor)
-            Text(
-                text = "₹${pickup.finalCashAmount ?: pickup.totalEstimatedAmount}",
-                style = MaterialTheme.typography.titleMedium,
-                color = EcoEmerald400,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "Address: ${pickup.pickupAddress}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White
-        )
-        Text(
-            text = "Est. Weight: ${pickup.totalEstimatedWeight} kg · Verified Weight: ${pickup.actualVerifiedWeight ?: "Pending scale"} kg",
-            style = MaterialTheme.typography.bodySmall,
-            color = Slate400
-        )
-
-        // Doorstep Vehicle Verification Panel
-        if (pickup.status in listOf("agent_assigned", "at_doorstep", "spot_weighed")) {
-            Spacer(modifier = Modifier.height(14.dp))
-            Surface(
-                color = Slate800,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = "https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=300",
-                        contentDescription = "Agent Vehicle",
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Doorstep Match Required",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LeafCoinGold
-                        )
-                        Text(
-                            text = "Vehicle: KL-07-CD-5678",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Agent: Rahul Kumar (★ 4.95)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Slate400
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            EcoButton(
-                text = "Open Doorstep Verification",
-                icon = Icons.Default.VerifiedUser,
-                onClick = onDoorstepClick
-            )
-        } else if (pickup.status == "completed") {
-            Spacer(modifier = Modifier.height(12.dp))
-            EcoButton(
-                text = "Rate Agent (12-Hr Window)",
-                icon = Icons.Default.Star,
-                onClick = onRateClick
-            )
+            Text(text = title, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(text = subtitle, color = Slate400, fontSize = 10.sp)
         }
     }
 }

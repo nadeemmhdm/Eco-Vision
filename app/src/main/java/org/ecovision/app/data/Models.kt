@@ -84,7 +84,10 @@ data class Profile(
     @SerialName("referred_by") val referredBy: String? = null,
     @SerialName("leaf_coins") val leafCoins: Int = 50,
     @SerialName("totp_enabled") val totpEnabled: Boolean = false,
+    @SerialName("two_factor_secret") val twoFactorSecret: String? = null,
     @SerialName("email_otp_enabled") val emailOtpEnabled: Boolean = false,
+    @SerialName("account_status") val accountStatus: String = "active", // "active", "deactivated"
+    @SerialName("scheduled_deletion_at") val scheduledDeletionAt: String? = null,
     @SerialName("profile_photo_url") val profilePhotoUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )
