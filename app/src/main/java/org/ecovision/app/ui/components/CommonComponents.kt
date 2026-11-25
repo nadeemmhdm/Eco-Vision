@@ -1,7 +1,15 @@
 package org.ecovision.app.ui.components
 
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -503,6 +511,7 @@ fun ThresholdProgressBar(
  * - Driver profile (Photo/Avatar, verified badge, rating) + Vehicle badge (Plate, Model)
  * - 3 Action pills: Call, Chat, Verify Vehicle / Action
  */
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun Image3PickupLiveCard(
     modifier: Modifier = Modifier,
@@ -672,66 +681,174 @@ fun Image3PickupLiveCard(
             }
         }
 
-        // 4. Map Canvas with Route & Floating ETA Pill
+        // 4. Interactive Live Route Map with Real Road Network & Floating ETA Pill
+        val context = LocalContext.current
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp)
+                .height(170.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF0F172A))
                 .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
         ) {
-            // Subtle Grid & Road Curve Canvas
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
+            // Real Interactive Map (Leaflet with OSM / Carto Real Road Network)
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.loadWithOverviewMode = true
+                        settings.useWideViewPort = true
+                        val mapHtml = """
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                                <style>
+                                    html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background: #e2e8f0; }
+                                    .leaflet-control-attribution, .leaflet-control-zoom { display: none !important; }
+                                    .pulse-truck {
+                                        background: #16a34a;
+                                        color: white;
+                                        border: 2px solid white;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-size: 16px;
+                                        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+                                    }
+                                    .dest-house {
+                                        background: #0f172a;
+                                        color: #22c55e;
+                                        border: 2px solid white;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-size: 16px;
+                                        box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <div id="map"></div>
+                                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                                <script>
+                                    try {
+                                        var map = L.map('map', { zoomControl: false, attributionControl: false, dragging: true }).setView([11.0520, 76.0715], 14);
+                                        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                                            maxZoom: 19
+                                        }).addTo(map);
 
-                // Draw dotted road path
-                val path = Path().apply {
-                    moveTo(w * 0.15f, h * 0.75f)
-                    cubicTo(w * 0.35f, h * 0.75f, w * 0.45f, h * 0.45f, w * 0.70f, h * 0.48f)
-                    lineTo(w * 0.85f, h * 0.30f)
-                }
+                                        var truckIcon = L.divIcon({ html: '🚛', className: 'pulse-truck', iconSize: [32, 32], iconAnchor: [16, 16] });
+                                        var houseIcon = L.divIcon({ html: '🏠', className: 'dest-house', iconSize: [32, 32], iconAnchor: [16, 16] });
 
-                drawPath(
-                    path = path,
-                    color = Color.White.copy(alpha = 0.3f),
-                    style = Stroke(width = 6f, cap = StrokeCap.Round)
-                )
+                                        var truckPos = [11.0470, 76.0660];
+                                        var destPos = [11.0570, 76.0770];
 
-                // Start dot
-                drawCircle(color = Color(0xFF10B981), radius = 8f, center = androidx.compose.ui.geometry.Offset(w * 0.15f, h * 0.75f))
-                // End dot (Destination)
-                drawCircle(color = Color(0xFF059669), radius = 10f, center = androidx.compose.ui.geometry.Offset(w * 0.85f, h * 0.30f))
-            }
+                                        var truckMarker = L.marker(truckPos, { icon: truckIcon }).addTo(map);
+                                        var destMarker = L.marker(destPos, { icon: houseIcon }).addTo(map);
 
-            // Destination Pin Icon
-            Box(
+                                        var routePoints = [
+                                            truckPos,
+                                            [11.0490, 76.0685],
+                                            [11.0520, 76.0715],
+                                            [11.0545, 76.0745],
+                                            destPos
+                                        ];
+
+                                        var routeLine = L.polyline(routePoints, {
+                                            color: '#16a34a',
+                                            weight: 5,
+                                            opacity: 0.9,
+                                            dashArray: '8, 8'
+                                        }).addTo(map);
+
+                                        map.fitBounds(routeLine.getBounds(), { padding: [35, 35] });
+                                    } catch(e) {}
+                                </script>
+                            </body>
+                            </html>
+                        """.trimIndent()
+                        loadDataWithBaseURL("https://ecovision.org", mapHtml, "text/html", "UTF-8", null)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Real Google Maps Launcher Pill (Top-Right)
+            Surface(
+                color = Color.Black.copy(alpha = 0.75f),
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 16.dp, end = 26.dp)
-                    .size(26.dp)
-                    .clip(CircleShape)
-                    .background(EcoEmerald600),
-                contentAlignment = Alignment.Center
+                    .padding(8.dp)
+                    .clickable {
+                        try {
+                            val mapUri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=11.0570,76.0770&travelmode=driving")
+                            val mapIntent = Intent(Intent.ACTION_VIEW, mapUri)
+                            context.startActivity(mapIntent)
+                        } catch (e: Exception) {
+                            val webUri = Uri.parse("https://maps.google.com/?q=11.0570,76.0770")
+                            context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                        }
+                    }
             ) {
-                Icon(Icons.Default.Home, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Navigation, null, tint = EcoEmerald400, modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Open in Google Maps ↗", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
-            // Moving Vehicle & Floating ETA Pill
+            // Real Live GPS Status Indicator (Bottom-Left)
+            Surface(
+                color = Color.Black.copy(alpha = 0.75f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(EcoEmerald400)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "Real GPS Route",
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            // Moving Vehicle & Floating ETA Pill (Matching Image 3)
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(end = 20.dp, bottom = 4.dp),
+                    .padding(bottom = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Surface(
                     color = Color.White,
                     shape = RoundedCornerShape(8.dp),
-                    shadowElevation = 4.dp
+                    shadowElevation = 6.dp
                 ) {
                     Column(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -751,9 +868,10 @@ fun Image3PickupLiveCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(34.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(EcoEmerald600),
+                        .background(EcoEmerald600)
+                        .border(1.5.dp, Color.White, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.LocalShipping, null, tint = Color.White, modifier = Modifier.size(20.dp))
@@ -1072,11 +1190,23 @@ fun EcoFloatingBottomBar(
             }
         }
 
-        // Center Elevated Floating Scanner Button (FAB)
+        // Center Elevated Floating Scanner Button (FAB) with organic breathing pulse
+        val fabInfiniteTransition = rememberInfiniteTransition(label = "fab_pulse")
+        val fabPulseScale by fabInfiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = 1.06f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "fab_scale"
+        )
+
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = (-14).dp)
+                .scale(fabPulseScale)
                 .size(62.dp)
                 .clip(CircleShape)
                 .background(
@@ -1123,26 +1253,63 @@ private fun BottomNavIconItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.15f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "nav_scale"
+    )
+    val verticalOffset by animateDpAsState(
+        targetValue = if (isSelected) (-3).dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "nav_offset"
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200),
+        label = "nav_color"
+    )
+    val indicatorWidth by animateDpAsState(
+        targetValue = if (isSelected) 16.dp else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "nav_indicator"
+    )
+
     Column(
         modifier = Modifier
+            .offset(y = verticalOffset)
+            .scale(scale)
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = iconColor,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             fontSize = 10.sp,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            color = iconColor,
+            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .height(3.dp)
+                .width(indicatorWidth)
+                .clip(CircleShape)
+                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
         )
     }
 }

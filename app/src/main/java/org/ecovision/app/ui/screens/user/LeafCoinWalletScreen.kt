@@ -55,7 +55,7 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
     var showCashRedeemDialog by remember { mutableStateOf(false) }
     var redeemUpiId by remember { mutableStateOf(profile?.upiId ?: "") }
     var redeemHolderName by remember { mutableStateOf(profile?.upiHolderName ?: profile?.fullName ?: "") }
-    var redeemCoinsInput by remember { mutableStateOf("100") }
+    var redeemCoinsInput by remember { mutableStateOf("1000") }
     var isSubmittingCashRedeem by remember { mutableStateOf(false) }
 
     val userCoins = profile?.leafCoins ?: 0
@@ -170,9 +170,9 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
 
                     // Direct UPI Cash Payout Trigger
                     EcoButton(
-                        text = if (userCoins >= 50) "Redeem Coins for Cash via UPI" else "Min 50 Coins to Redeem Cash",
+                        text = if (userCoins >= 1000) "Redeem Coins for Cash via UPI" else "Min ₹100 (1,000 Coins) to Redeem Cash",
                         icon = Icons.Default.CurrencyRupee,
-                        enabled = userCoins >= 50,
+                        enabled = userCoins >= 1000,
                         onClick = { showCashRedeemDialog = true }
                     )
                 }
@@ -563,7 +563,7 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
             val coinsToRedeem = redeemCoinsInput.toIntOrNull() ?: 0
             val payoutRupees = coinsToRedeem / 10.0
             val isUpiValid = redeemUpiId.contains("@") && redeemUpiId.length >= 5
-            val canSubmit = coinsToRedeem in 50..userCoins && isUpiValid && redeemHolderName.isNotBlank()
+            val canSubmit = coinsToRedeem in 1000..userCoins && isUpiValid && redeemHolderName.isNotBlank()
 
             AlertDialog(
                 onDismissRequest = { showCashRedeemDialog = false },
@@ -615,7 +615,14 @@ fun LeafCoinWalletScreen(onBack: () -> Unit) {
                         OutlinedTextField(
                             value = redeemCoinsInput,
                             onValueChange = { redeemCoinsInput = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Coins to Redeem (Min 50) *") },
+                            label = { Text("Coins to Redeem (Min 1,000 Coins = ₹100) *") },
+                            supportingText = {
+                                if (coinsToRedeem in 1..999) {
+                                    Text("Minimum cash redemption is 1,000 Coins (₹100)", color = CoralRed, fontSize = 10.sp)
+                                } else if (coinsToRedeem > userCoins) {
+                                    Text("Insufficient balance. You have $userCoins Coins", color = CoralRed, fontSize = 10.sp)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.*
@@ -190,10 +191,6 @@ fun ProfileScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            StatusBadge(
-                                text = (profile?.role ?: "user").uppercase(),
-                                color = TechBlue
-                            )
                             StatusBadge(
                                 text = if (profile?.kycStatus == "verified") "KYC VERIFIED" else "KYC ${profile?.kycStatus?.uppercase() ?: "PENDING"}",
                                 color = if (profile?.kycStatus == "verified") EcoEmerald400 else LeafCoinGold
@@ -431,17 +428,54 @@ fun ProfileScreen(
                             .padding(14.dp)
                     ) {
                         Text(
-                            text = "Step 1: Copy Authenticator Secret Key",
+                            text = "Step 1: Scan QR Code or Copy Secret Key",
                             style = MaterialTheme.typography.titleSmall,
                             color = Color.White,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Add this key into Google Authenticator or Authy to generate dynamic 6-digit codes:",
+                            text = "Scan the QR code with Google Authenticator / Authy, or copy the key below:",
                             style = MaterialTheme.typography.bodySmall,
                             color = Slate300,
                             fontSize = 11.sp
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // QR Code Display
+                        val qrCodeUri = remember(generatedTotpSecret, profile?.username) {
+                            val uriString = TotpHelper.getOtpAuthUri(profile?.username ?: "user", generatedTotpSecret)
+                            "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + Uri.encode(uriString)
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = Color.White,
+                                shape = RoundedCornerShape(12.dp),
+                                shadowElevation = 4.dp,
+                                modifier = Modifier.size(160.dp)
+                            ) {
+                                AsyncImage(
+                                    model = qrCodeUri,
+                                    contentDescription = "2FA TOTP QR Code",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(8.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Scan with Google Authenticator / Authy",
+                                color = EcoEmerald400,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(10.dp))
 

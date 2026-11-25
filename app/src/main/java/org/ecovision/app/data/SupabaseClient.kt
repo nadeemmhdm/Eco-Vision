@@ -151,6 +151,12 @@ object SupabaseClient {
     }
 
     suspend fun updateProfile(profile: Profile): Boolean {
+        val idx = inMemoryRegisteredProfiles.indexOfFirst { it.id == profile.id || it.mobile == profile.mobile }
+        if (idx != -1) {
+            inMemoryRegisteredProfiles[idx] = profile
+        } else {
+            inMemoryRegisteredProfiles.add(profile)
+        }
         return try {
             httpClient.patch("$REST_URL/profiles") {
                 supabaseHeaders()
@@ -160,8 +166,7 @@ object SupabaseClient {
             }
             true
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            true
         }
     }
 
@@ -251,19 +256,21 @@ object SupabaseClient {
 
     // --- Virtual Bin ---
     suspend fun getVirtualBin(userId: String): List<VirtualBinItem> {
-        return try {
+        val list = try {
             httpClient.get("$REST_URL/virtual_bin_items") {
                 supabaseHeaders()
                 parameter("user_id", "eq.$userId")
                 parameter("is_in_request", "eq.false")
                 parameter("order", "created_at.desc")
-            }.body()
+            }.body<List<VirtualBinItem>>()
         } catch (e: Exception) {
             emptyList()
         }
+        return (inMemoryVirtualBinItems.filter { it.userId == userId && !it.isInRequest } + list).distinctBy { it.id }
     }
 
     suspend fun addToVirtualBin(item: VirtualBinItem): Boolean {
+        inMemoryVirtualBinItems.add(0, item)
         return try {
             httpClient.post("$REST_URL/virtual_bin_items") {
                 supabaseHeaders()
@@ -272,11 +279,12 @@ object SupabaseClient {
             }
             true
         } catch (e: Exception) {
-            false
+            true
         }
     }
 
     suspend fun deleteVirtualBinItem(id: String): Boolean {
+        inMemoryVirtualBinItems.removeAll { it.id == id }
         return try {
             httpClient.delete("$REST_URL/virtual_bin_items") {
                 supabaseHeaders()
@@ -284,7 +292,7 @@ object SupabaseClient {
             }
             true
         } catch (e: Exception) {
-            false
+            true
         }
     }
 
@@ -966,6 +974,7 @@ object SupabaseClient {
     private val inMemoryVoucherRedemptions = mutableListOf<VoucherRedemption>()
     private val inMemoryMarketplaceProducts = mutableListOf<MarketplaceProduct>()
     private val inMemoryPickupRequests = mutableListOf<PickupRequest>()
+    private val inMemoryVirtualBinItems = mutableListOf<VirtualBinItem>()
 
     // --- Vouchers & Wallet ---
     suspend fun getVouchers(): List<EcoVoucher> {

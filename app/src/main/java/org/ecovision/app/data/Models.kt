@@ -281,14 +281,29 @@ data class LeafCoinTransaction(
     @SerialName("created_at") val createdAt: String? = null
 )
 
+@Serializable
+data class YouTubeUpcycleVideo(
+    val title: String,
+    val channel: String,
+    val duration: String,
+    val videoId: String,
+    val thumbnailUrl: String,
+    val description: String = ""
+)
+
 // AI Detection Output
 data class AiDetectionResult(
     val categoryId: String,
     val categoryName: String,
-    val confidence: Double,
-    val isRecyclable: Boolean,
-    val estimatedBasePrice: Double,
-    val diyRecommendations: List<String>,
+    val wasteName: String = "Scanned Waste Item",
+    val wasteType: String = "Recyclable Scrap",
+    val material: String = "Clean Recyclable",
+    val confidence: Double = 96.0,
+    val isRecyclable: Boolean = true,
+    val estimatedBasePrice: Double = 15.0,
+    val estimatedWeightKg: Double = 1.5,
+    val diyRecommendations: List<String> = emptyList(),
+    val upcycleVideos: List<YouTubeUpcycleVideo> = emptyList(),
     val imageUrl: String? = null
 )
 

@@ -401,8 +401,8 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                     )
                                                     SupabaseClient.updateProfile(updatedWithDevice)
 
-                                                    if (profile.totpEnabled || profile.emailOtpEnabled) {
-                                                        twoFactorType = if (profile.totpEnabled) "totp" else "email_otp"
+                                                    if (profile.totpEnabled || !profile.twoFactorSecret.isNullOrBlank() || profile.emailOtpEnabled) {
+                                                        twoFactorType = if (profile.totpEnabled || !profile.twoFactorSecret.isNullOrBlank()) "totp" else "email_otp"
                                                         step = 3
                                                     } else {
                                                         SessionManager.setProfile(updatedWithDevice, persist = true)

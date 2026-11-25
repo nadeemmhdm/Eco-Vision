@@ -78,46 +78,41 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.8
-          name: EcoVision Release v1.0.8
+          tag_name: v1.0.9
+          name: EcoVision Release v1.0.9
           draft: false
           prerelease: false
           body: |
-            ### 🪙 EcoVision Release v1.0.8 (Latest APK)
+            ### ♻️ EcoVision Release v1.0.9 (Latest APK)
 
-            Complete AI-Powered Smart Waste Management, Wallet & Navigation Bugfixes, Stitch UI Top Header Realignment, Upcycled Marketplace 1-4 Multi-Image Upload & Streamlined Experience for Android.
+            Complete AI Waste Classification, Recyclable vs Non-Recyclable Filtering, YouTube Upcycle Integration, Animated Bottom Nav, Interactive Google Map Route, 2FA QR Code, and Min ₹100 Cash Redemption.
 
-            #### 🚀 What's New in v1.0.8:
-            - **🛠️ Wallet Navigation Crash Resolved**:
-              - Fixed fatal crash when opening Wallet (`EcoVision closed because this app has some bugs`).
-              - Synchronized route definitions between bottom navigation bar (`wallet`) and registered NavHost composables, with dual alias support (`wallet` and `leaf_coins`).
-            - **✨ Top Header Design & Visual Bug Resolved**:
-              - Fixed the duplicate header overlap reported in user screenshot (`media_1795591305897_787dbaff.jpg`).
-              - Suppressed the Scaffold-level generic top bar on dashboards featuring the curved emerald hero card, letting the Stitch header cleanly fill the top status bar area.
-            - **🧭 Role Bottom Navigation Routing**:
-              - **Agent Dashboard**: "Pickups" tab and "Godown Drop" bottom bar items now switch directly to active tabs.
-              - **Company Dashboard**: "Godown" and "Orders" bottom bar buttons now navigate to Company B2B Godown inventory feed and Bulk Orders rather than citizen marketplace.
-              - **Admin Dashboard**: "Gov", "KYC", and "Payouts" correctly switch between governance desks.
-            - **🛍️ Upcycled Marketplace Multi-Image Listing (Min 1, Max 4 Photos)**:
-              - Added multi-image upload supporting 1 to 4 photos per upcycled craft item.
-              - Multiple input sources: **Gallery** multi-picker (`ActivityResultContracts.GetMultipleContents`), **Camera** photo capture (`ActivityResultContracts.TakePicturePreview`), and **Sample Preset** photos.
-              - Real-time thumbnail preview strip with individual deletion buttons `(X)`.
-              - Mandatory validation ensuring minimum 1 photo before listing.
-              - Instant local visibility: newly listed crafts immediately prepend to the marketplace grid and persist in the in-memory cache.
-              - Multi-photo product detail modal with interactive thumbnail switcher.
-            - **⚡ Streamlined Splash Screen Launch**:
-              - Instant zero-delay transition to dashboard when a valid user session is already active.
-            - **💾 Persistent In-Memory Caching**:
-              - In-memory cache for pickups, marketplace products, and transactions to ensure uninterrupted offline/online resilience.
-
-            #### 🚀 Previous Features from v1.0.7:
-            - **🌓 Dynamic Dark & Light Themes with System Auto-Detect**:
-              - Complete dual theme engine (`DarkColorScheme` and `LightColorScheme`) that automatically detects Android system appearance (`isSystemInDarkTheme()`).
-              - Instant 1-tap Theme Switcher button in the top navigation header (`EcoHeader`) cycling between **Auto Detect / Light / Dark**.
-              - Dedicated **App Appearance & Theme** selector card in Profile Screen with real-time preference persistence.
-              - Crisp high-contrast surfaces (`#FFFFFF` on `#F8FAFC`) in Light Mode and sleek obsidian depth (`#0F172A` on `#050811`) in Dark Mode.
-            - **🚚 Official Waste Truck App Logo Integration**:
-              - Integrated official green waste collection compactor truck logo across the entire app.
+            #### 🚀 What's New in v1.0.9:
+            - **🧠 AI Waste Identification & Smart Classification**:
+              - Automated classification into **Recyclable** vs **Non-Recyclable** materials.
+              - **Recyclable Bin Button Logic**: Hides the "Add to Recyclable Bin" button entirely for non-recyclable materials with clear segregation advisory. Displays button for recyclable materials.
+              - Full Waste Details: Waste Name, Category, Material, Recyclability status badge, Applicable unit rate (₹/kg), and total estimated value.
+              - Live Weight Adjustment Slider/Stepper with real-time total collection weight & price calculation.
+            - **🎨 "Upscale This Product" YouTube DIY Integration**:
+              - 1-tap "Upscale This Product 🎨" action in waste details.
+              - Curated list of 2 to 5 relevant YouTube videos demonstrating creative DIY ways to transform scanned waste materials into functional products.
+              - Rich video card previews with title, channel name, duration badge, and direct YouTube player launch.
+            - **🗑️ Virtual Bin Item Visibility Fix**:
+              - Added synchronized in-memory caching for scanned waste items added to the virtual bin, guaranteeing instant visibility even offline or before cloud sync.
+            - **🔐 2FA TOTP QR Code & Mandatory Sign-In Verification**:
+              - Instant QR Code generator in Profile Settings for seamless 1-scan setup in Google Authenticator, Microsoft Authenticator, or Authy.
+              - Enforced 6-digit TOTP verification check upon subsequent logins for all accounts with 2FA enabled.
+              - Removed redundant user role badge in Profile header for a cleaner look.
+            - **💰 Wallet Min ₹100 Cash Redemption via UPI**:
+              - Updated minimum cash redemption threshold to ₹100 (1,000 Coins at 10 Coins = ₹1).
+              - Coin-based voucher and coupon redemptions with waiting list tracking.
+            - **🗺️ Interactive Live Route Map with Google Maps Integration**:
+              - Embedded interactive map with real street and road network, animated collection vehicle marker, user destination pin, and route polyline.
+              - 1-tap "Open in Google Maps ↗" launcher for real-time turn-by-turn navigation.
+            - **✨ Animated Bottom Navigation Bar**:
+              - Bouncy spring physics scaling and vertical translation for active tabs.
+              - Animated sliding indicator pill under the active icon.
+              - Smooth color crossfading and pulsing center scanner FAB button.
               - Pulsing splash screen loading icon with glowing halo ring.
               - Onboarding screen hero winding road illustration and top brand bar.
               - System Android adaptive launcher icon (`ic_launcher_foreground.xml`) and Android 12+ splash theme (`themes.xml`).
