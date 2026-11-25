@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -228,9 +229,8 @@ fun AiScanScreen(
                 categoryName = "Glass Bottle",
                 confidence = 98.0,
                 isRecyclable = true,
-                cleanlinessScore = 0.95,
                 estimatedBasePrice = 14.0,
-                suggestedAction = "Clean thoroughly and sort into blue bin"
+                diyRecommendations = listOf("Clean thoroughly and sort into blue bin")
             )
             val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
             val baseRate = selectedCategory?.baseRatePerKg ?: result.estimatedBasePrice
@@ -243,7 +243,7 @@ fun AiScanScreen(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.Top,
+                verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // 1. Video Banner Card (Matching Image 1 Screen 4)
@@ -602,9 +602,8 @@ fun AiScanScreen(
                                 categoryName = "Glass Bottle",
                                 confidence = 98.0,
                                 isRecyclable = true,
-                                cleanlinessScore = 0.95,
                                 estimatedBasePrice = 14.0,
-                                suggestedAction = "Clean thoroughly and sort into blue bin"
+                                diyRecommendations = listOf("Clean thoroughly and sort into blue bin")
                             )
                             selectedCategoryId = "glass_bottles"
                         },
@@ -617,9 +616,8 @@ fun AiScanScreen(
                                 categoryName = "PET Plastic Bottle",
                                 confidence = 97.0,
                                 isRecyclable = true,
-                                cleanlinessScore = 0.90,
                                 estimatedBasePrice = 16.50,
-                                suggestedAction = "Crush bottle and screw cap on"
+                                diyRecommendations = listOf("Crush bottle and screw cap on")
                             )
                             selectedCategoryId = "pet_plastic"
                         },

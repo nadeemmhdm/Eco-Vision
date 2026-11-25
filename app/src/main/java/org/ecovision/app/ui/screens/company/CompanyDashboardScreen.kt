@@ -404,7 +404,7 @@ fun CompanyDashboardScreen() {
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Material: ${order.materialType.replace("_", " ").uppercase()} • ${String.format("%.1f", order.totalWeightKg)} kg",
+                                    text = "Material: ${order.categoryId.replace("_", " ").uppercase()} • ${String.format("%.1f", order.totalWeightKg)} kg",
                                     color = TechBlue,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
@@ -611,7 +611,7 @@ fun CompanyDashboardScreen() {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(text = "Manifest Number: ${ord.manifestNumber}", color = EcoEmerald400, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(text = "Material: ${ord.materialType.replace("_", " ").uppercase()}", color = Color.White, fontSize = 12.sp)
+                            Text(text = "Material: ${ord.categoryId.replace("_", " ").uppercase()}", color = Color.White, fontSize = 12.sp)
                             Text(text = "Net Weight: ${ord.totalWeightKg} kg", color = Slate300, fontSize = 12.sp)
                             Text(text = "Total Value: ₹${ord.totalAmount}", color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             Text(text = "ESG Credit: ${ord.esgCarbonOffsetKg} kg CO2", color = EcoEmerald400, fontSize = 12.sp)

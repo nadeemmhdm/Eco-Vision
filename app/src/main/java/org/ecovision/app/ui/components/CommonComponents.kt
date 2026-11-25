@@ -1302,7 +1302,7 @@ fun FlippableVoucherCard(
                     )
 
                     Text(
-                        text = voucher.description,
+                        text = voucher.description ?: "Valid on zero-waste partner items.",
                         color = Slate400,
                         fontSize = 11.sp,
                         lineHeight = 15.sp
