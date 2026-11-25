@@ -425,7 +425,7 @@ fun AgentDashboardScreen() {
                         scope.launch {
                             val weight = actualScaleWeight.toDoubleOrNull() ?: req.totalEstimatedWeight
                             val finalAmount = weight * 18.0
-                            SupabaseClient.completePickupAndDepositGodown(req, profile?.id ?: "agent", weight, finalAmount)
+                            SupabaseClient.completePickupAndPayCash(req, profile?.id ?: "agent", weight, finalAmount)
                             statusMessage = "Doorstep weighing complete! ₹${String.format("%.2f", finalAmount)} credited to household."
                             selectedPickupForWeighing = null
                             refresh()
