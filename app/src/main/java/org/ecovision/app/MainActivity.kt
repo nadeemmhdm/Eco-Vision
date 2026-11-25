@@ -62,12 +62,7 @@ fun MainAppHost() {
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
-    val isTopLevelScreen = currentRoute in listOf(
-        Screen.UserHome.route,
-        Screen.AgentDashboard.route,
-        Screen.CompanyDashboard.route,
-        Screen.AdminDashboard.route
-    )
+    val isTopLevelScreen = false // Screens have dedicated hero headers (UserHome, Agent, Company, Admin)
 
     val isNavBarVisible = currentRoute in listOf(
         Screen.UserHome.route,
@@ -77,26 +72,13 @@ fun MainAppHost() {
         Screen.Marketplace.route,
         Screen.VirtualBin.route,
         Screen.LeafCoins.route,
-        Screen.Profile.route
+        Screen.Profile.route,
+        "wallet",
+        "leaf_coins"
     )
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            if (isTopLevelScreen) {
-                EcoHeader(
-                    title = "EcoVision",
-                    subtitle = when (profile?.role) {
-                        "agent" -> "Pickup Agent Desk"
-                        "company" -> "B2B Waste Marketplace"
-                        "admin" -> "Admin Governance"
-                        else -> "Circular Economy Loop"
-                    },
-                    onProfileClick = { navController.navigate(Screen.Profile.route) },
-                    onWalletClick = { navController.navigate(Screen.LeafCoins.route) }
-                )
-            }
-        },
         bottomBar = {
             if (isNavBarVisible) {
                 EcoFloatingBottomBar(
@@ -210,6 +192,9 @@ fun MainAppHost() {
                 MarketplaceScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.LeafCoins.route) {
+                LeafCoinWalletScreen(onBack = { navController.popBackStack() })
+            }
+            composable("leaf_coins") {
                 LeafCoinWalletScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.DoorstepVerification.route) { backStackEntry ->

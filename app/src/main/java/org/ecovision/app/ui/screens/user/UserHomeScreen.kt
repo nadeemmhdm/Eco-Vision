@@ -168,7 +168,8 @@ fun UserHomeScreen(
                             )
                         )
                     )
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
                 Column {
                     // Top Brand Bar: Logo + Brand + Theme Switcher + Coins Pill

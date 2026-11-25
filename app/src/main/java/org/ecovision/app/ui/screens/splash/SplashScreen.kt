@@ -75,14 +75,13 @@ fun SplashScreen(
         }
     }
 
-    LaunchedEffect(isInitialized) {
-        if (isInitialized && !hasNavigated) {
-            delay(500)
+    LaunchedEffect(isInitialized, currentProfile) {
+        if (!hasNavigated) {
             val profile = currentProfile
             if (profile != null) {
                 hasNavigated = true
                 onNavigateToHome(profile)
-            } else {
+            } else if (isInitialized) {
                 showOnboarding = true
             }
         }

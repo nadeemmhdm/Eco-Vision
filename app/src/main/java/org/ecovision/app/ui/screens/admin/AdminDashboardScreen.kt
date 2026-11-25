@@ -49,7 +49,11 @@ fun AdminDashboardScreen() {
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
     // Multi-page Tab Navigation State
-    var currentTab by remember { mutableIntStateOf(0) }
+    val externalAdminTab by SessionManager.adminTab.collectAsState()
+    var currentTab by remember { mutableIntStateOf(externalAdminTab) }
+    LaunchedEffect(externalAdminTab) {
+        currentTab = externalAdminTab
+    }
     val tabs = listOf(
         "KYC Verification" to Icons.Default.VerifiedUser,
         "User Governance" to Icons.Default.People,

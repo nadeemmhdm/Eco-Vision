@@ -78,16 +78,39 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.7
-          name: EcoVision Release v1.0.7
+          tag_name: v1.0.8
+          name: EcoVision Release v1.0.8
           draft: false
           prerelease: false
           body: |
-            ### 🪙 EcoVision Release v1.0.7 (Latest APK)
+            ### 🪙 EcoVision Release v1.0.8 (Latest APK)
 
-            Complete AI-Powered Smart Waste Management, Dark/Light Theme Engine, Streamlined Stitch UI, Official App Logo & Verified Doorstep Collection Platform for Android.
+            Complete AI-Powered Smart Waste Management, Wallet & Navigation Bugfixes, Stitch UI Top Header Realignment, Upcycled Marketplace 1-4 Multi-Image Upload & Streamlined Experience for Android.
 
-            #### 🚀 What's New in v1.0.7:
+            #### 🚀 What's New in v1.0.8:
+            - **🛠️ Wallet Navigation Crash Resolved**:
+              - Fixed fatal crash when opening Wallet (`EcoVision closed because this app has some bugs`).
+              - Synchronized route definitions between bottom navigation bar (`wallet`) and registered NavHost composables, with dual alias support (`wallet` and `leaf_coins`).
+            - **✨ Top Header Design & Visual Bug Resolved**:
+              - Fixed the duplicate header overlap reported in user screenshot (`media_1795591305897_787dbaff.jpg`).
+              - Suppressed the Scaffold-level generic top bar on dashboards featuring the curved emerald hero card, letting the Stitch header cleanly fill the top status bar area.
+            - **🧭 Role Bottom Navigation Routing**:
+              - **Agent Dashboard**: "Pickups" tab and "Godown Drop" bottom bar items now switch directly to active tabs.
+              - **Company Dashboard**: "Godown" and "Orders" bottom bar buttons now navigate to Company B2B Godown inventory feed and Bulk Orders rather than citizen marketplace.
+              - **Admin Dashboard**: "Gov", "KYC", and "Payouts" correctly switch between governance desks.
+            - **🛍️ Upcycled Marketplace Multi-Image Listing (Min 1, Max 4 Photos)**:
+              - Added multi-image upload supporting 1 to 4 photos per upcycled craft item.
+              - Multiple input sources: **Gallery** multi-picker (`ActivityResultContracts.GetMultipleContents`), **Camera** photo capture (`ActivityResultContracts.TakePicturePreview`), and **Sample Preset** photos.
+              - Real-time thumbnail preview strip with individual deletion buttons `(X)`.
+              - Mandatory validation ensuring minimum 1 photo before listing.
+              - Instant local visibility: newly listed crafts immediately prepend to the marketplace grid and persist in the in-memory cache.
+              - Multi-photo product detail modal with interactive thumbnail switcher.
+            - **⚡ Streamlined Splash Screen Launch**:
+              - Instant zero-delay transition to dashboard when a valid user session is already active.
+            - **💾 Persistent In-Memory Caching**:
+              - In-memory cache for pickups, marketplace products, and transactions to ensure uninterrupted offline/online resilience.
+
+            #### 🚀 Previous Features from v1.0.7:
             - **🌓 Dynamic Dark & Light Themes with System Auto-Detect**:
               - Complete dual theme engine (`DarkColorScheme` and `LightColorScheme`) that automatically detects Android system appearance (`isSystemInDarkTheme()`).
               - Instant 1-tap Theme Switcher button in the top navigation header (`EcoHeader`) cycling between **Auto Detect / Light / Dark**.

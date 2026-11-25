@@ -1,11 +1,16 @@
 package org.ecovision.app.ui.screens.user
 
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -21,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,10 +37,12 @@ import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoButton
 import org.ecovision.app.ui.components.GlassCard
 import org.ecovision.app.ui.components.StatusBadge
+import java.io.File
 import java.util.UUID
 
 @Composable
 fun MarketplaceScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val profile by SessionManager.currentProfile.collectAsState()
     val scope = rememberCoroutineScope()
 
@@ -50,13 +58,44 @@ fun MarketplaceScreen(onBack: () -> Unit) {
     var deliveryAddress by remember { mutableStateOf(profile?.defaultAddress ?: "Palarivattom, Kochi, Kerala") }
     var paymentMethod by remember { mutableStateOf("UPI Online") }
 
-    // New Product state
+    // New Product state (Multi-image upload 1 to 4 images)
     var newTitle by remember { mutableStateOf("") }
     var newDesc by remember { mutableStateOf("") }
     var newMaterial by remember { mutableStateOf("PET Plastic Bottles") }
     var newPrice by remember { mutableStateOf("250") }
-    var newImageUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1544816155-12df9643f363?w=600") }
+    var newImages by remember { mutableStateOf<List<String>>(emptyList()) }
     var notificationMessage by remember { mutableStateOf<String?>(null) }
+
+    val samplePresetPhotos = listOf(
+        "https://images.unsplash.com/photo-1544816155-12df9643f363?w=600",
+        "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=600",
+        "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600",
+        "https://images.unsplash.com/photo-1590402494682-cd3fb53b1f70?w=600"
+    )
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        val remaining = 4 - newImages.size
+        if (remaining > 0) {
+            val added = uris.take(remaining).map { it.toString() }
+            newImages = (newImages + added).distinct().take(4)
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null && newImages.size < 4) {
+            try {
+                val file = File(context.cacheDir, "craft_${System.currentTimeMillis()}.jpg")
+                file.outputStream().use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                }
+                newImages = (newImages + Uri.fromFile(file).toString()).take(4)
+            } catch (_: Exception) {}
+        }
+    }
 
     fun refresh() {
         scope.launch {
@@ -175,16 +214,48 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                             .clickable { selectedProductForDetails = item }
                     ) {
                         Column {
-                            if (item.imageUrl != null) {
-                                AsyncImage(
-                                    model = item.imageUrl,
-                                    contentDescription = item.title,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(130.dp)
-                                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                                    contentScale = ContentScale.Crop
-                                )
+                            val displayImg = item.imageUrl ?: item.images.firstOrNull()
+                            if (displayImg != null) {
+                                Box {
+                                    AsyncImage(
+                                        model = displayImg,
+                                        contentDescription = item.title,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(130.dp)
+                                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    val count = if (item.images.isNotEmpty()) item.images.size else 1
+                                    if (count > 1) {
+                                        Surface(
+                                            color = Slate950.copy(alpha = 0.75f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(6.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.PhotoLibrary,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(11.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    text = "$count",
+                                                    color = Color.White,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(
@@ -242,6 +313,10 @@ fun MarketplaceScreen(onBack: () -> Unit) {
         // ==========================================
         if (selectedProductForDetails != null) {
             val prod = selectedProductForDetails!!
+            var activePhotoIndex by remember(prod.id) { mutableIntStateOf(0) }
+            val allPhotos = if (prod.images.isNotEmpty()) prod.images else listOfNotNull(prod.imageUrl)
+            val currentPhoto = allPhotos.getOrNull(activePhotoIndex) ?: prod.imageUrl
+
             AlertDialog(
                 onDismissRequest = { selectedProductForDetails = null },
                 containerColor = Slate850,
@@ -252,9 +327,9 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                 },
                 text = {
                     Column {
-                        if (prod.imageUrl != null) {
+                        if (currentPhoto != null) {
                             AsyncImage(
-                                model = prod.imageUrl,
+                                model = currentPhoto,
                                 contentDescription = prod.title,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -262,6 +337,34 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                                     .clip(RoundedCornerShape(12.dp)),
                                 contentScale = ContentScale.Crop
                             )
+                            if (allPhotos.size > 1) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    allPhotos.forEachIndexed { idx, url ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .border(
+                                                    width = if (idx == activePhotoIndex) 2.dp else 1.dp,
+                                                    color = if (idx == activePhotoIndex) EcoEmerald400 else Slate700,
+                                                    shape = RoundedCornerShape(6.dp)
+                                                )
+                                                .clickable { activePhotoIndex = idx }
+                                        ) {
+                                            AsyncImage(
+                                                model = url,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(12.dp))
                         }
 
@@ -585,60 +688,202 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                 containerColor = Slate850,
                 titleContentColor = Color.White,
                 textContentColor = Slate300,
-                title = { Text("List Upcycled Craft") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.AddCircle, contentDescription = null, tint = EcoEmerald400)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("List Upcycled Craft")
+                    }
+                },
                 text = {
-                    Column {
-                        OutlinedTextField(
-                            value = newTitle,
-                            onValueChange = { newTitle = it },
-                            label = { Text("Product Title") },
-                            placeholder = { Text("e.g. Self-Watering Planters") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newDesc,
-                            onValueChange = { newDesc = it },
-                            label = { Text("Description") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newMaterial,
-                            onValueChange = { newMaterial = it },
-                            label = { Text("Source Waste Material") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newPrice,
-                            onValueChange = { newPrice = it },
-                            label = { Text("Asking Price (₹)") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item {
+                            Text(
+                                text = "Craft Photos (Min 1, Max 4 images)*",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { galleryLauncher.launch("image/*") },
+                                    enabled = newImages.size < 4,
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EcoEmerald400)
+                                ) {
+                                    Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Gallery", fontSize = 12.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = { cameraLauncher.launch(null) },
+                                    enabled = newImages.size < 4,
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = EcoEmerald400)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Camera", fontSize = 12.sp)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        val nextPreset = samplePresetPhotos.firstOrNull { it !in newImages } ?: samplePresetPhotos.first()
+                                        newImages = (newImages + nextPreset).distinct().take(4)
+                                    },
+                                    enabled = newImages.size < 4,
+                                    modifier = Modifier.weight(1.2f),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LeafCoinGold)
+                                ) {
+                                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("+ Preset", fontSize = 12.sp)
+                                }
+                            }
+                        }
+
+                        if (newImages.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    newImages.forEachIndexed { index, imgUri ->
+                                        Box(
+                                            modifier = Modifier
+                                                .size(68.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .border(1.dp, if (index == 0) EcoEmerald400 else Slate700, RoundedCornerShape(8.dp))
+                                        ) {
+                                            AsyncImage(
+                                                model = imgUri,
+                                                contentDescription = "Image $index",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                            Surface(
+                                                color = Slate950.copy(alpha = 0.75f),
+                                                shape = RoundedCornerShape(bottomEnd = 4.dp),
+                                                modifier = Modifier.align(Alignment.TopStart)
+                                            ) {
+                                                Text(
+                                                    text = if (index == 0) "Main" else "${index + 1}",
+                                                    color = Color.White,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                            Surface(
+                                                color = Color.Red.copy(alpha = 0.85f),
+                                                shape = CircleShape,
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .clickable {
+                                                        newImages = newImages.filterIndexed { i, _ -> i != index }
+                                                    }
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Close,
+                                                    contentDescription = "Remove",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.padding(2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            item {
+                                Text(
+                                    text = "⚠️ Minimum 1 photo required (up to 4 photos max).",
+                                    color = LeafCoinGold,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        item {
+                            OutlinedTextField(
+                                value = newTitle,
+                                onValueChange = { newTitle = it },
+                                label = { Text("Product Title*") },
+                                placeholder = { Text("e.g. Self-Watering Planters") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                        item {
+                            OutlinedTextField(
+                                value = newDesc,
+                                onValueChange = { newDesc = it },
+                                label = { Text("Description") },
+                                placeholder = { Text("Details about the craft and process...") },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 3
+                            )
+                        }
+                        item {
+                            OutlinedTextField(
+                                value = newMaterial,
+                                onValueChange = { newMaterial = it },
+                                label = { Text("Source Waste Material*") },
+                                placeholder = { Text("e.g. Discarded Coconut Shells") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                        item {
+                            OutlinedTextField(
+                                value = newPrice,
+                                onValueChange = { newPrice = it },
+                                label = { Text("Asking Price (₹)*") },
+                                placeholder = { Text("250") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
                     }
                 },
                 confirmButton = {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
+                        enabled = newImages.isNotEmpty() && newTitle.isNotBlank() && newPrice.isNotBlank(),
                         onClick = {
+                            val seller = profile ?: Profile(id = "user-adhil", username = "adhil", role = "user")
+                            val product = MarketplaceProduct(
+                                id = UUID.randomUUID().toString(),
+                                sellerId = seller.id,
+                                title = newTitle.trim(),
+                                description = newDesc.trim(),
+                                sourceWasteMaterial = newMaterial.trim(),
+                                askingPrice = newPrice.toDoubleOrNull() ?: 200.0,
+                                imageUrl = newImages.firstOrNull(),
+                                images = newImages.toList(),
+                                seller = seller
+                            )
                             showCreateDialog = false
+                            products = (listOf(product) + products).distinctBy { it.id }
+                            notificationMessage = "🎉 Successfully listed '${product.title}' on Marketplace!"
+                            newTitle = ""
+                            newDesc = ""
+                            newPrice = "250"
+                            newImages = emptyList()
+
                             scope.launch {
-                                if (profile != null) {
-                                    SupabaseClient.createMarketplaceProduct(
-                                        MarketplaceProduct(
-                                            id = UUID.randomUUID().toString(),
-                                            sellerId = profile!!.id,
-                                            title = newTitle,
-                                            description = newDesc,
-                                            sourceWasteMaterial = newMaterial,
-                                            askingPrice = newPrice.toDoubleOrNull() ?: 200.0,
-                                            imageUrl = newImageUrl
-                                        )
-                                    )
-                                    refresh()
-                                    notificationMessage = "Craft listed on Upcycled Store!"
-                                }
+                                SupabaseClient.createMarketplaceProduct(product)
                             }
                         }
                     ) {

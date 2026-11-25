@@ -231,6 +231,7 @@ data class MarketplaceProduct(
     @SerialName("source_waste_material") val sourceWasteMaterial: String,
     @SerialName("asking_price") val askingPrice: Double,
     @SerialName("image_url") val imageUrl: String? = null,
+    val images: List<String> = emptyList(),
     val status: String = "active",
     @SerialName("created_at") val createdAt: String? = null,
     val seller: Profile? = null

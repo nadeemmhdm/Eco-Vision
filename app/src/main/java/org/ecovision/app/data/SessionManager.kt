@@ -63,6 +63,18 @@ object SessionManager {
     private val _maintenanceBlocked = MutableStateFlow<Boolean>(false)
     val maintenanceBlocked: StateFlow<Boolean> = _maintenanceBlocked.asStateFlow()
 
+    private val _agentTab = MutableStateFlow<Int>(0)
+    val agentTab: StateFlow<Int> = _agentTab.asStateFlow()
+    fun setAgentTab(tab: Int) { _agentTab.value = tab }
+
+    private val _companyTab = MutableStateFlow<Int>(0)
+    val companyTab: StateFlow<Int> = _companyTab.asStateFlow()
+    fun setCompanyTab(tab: Int) { _companyTab.value = tab }
+
+    private val _adminTab = MutableStateFlow<Int>(0)
+    val adminTab: StateFlow<Int> = _adminTab.asStateFlow()
+    fun setAdminTab(tab: Int) { _adminTab.value = tab }
+
     private val _isInitialized = MutableStateFlow<Boolean>(false)
     val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 

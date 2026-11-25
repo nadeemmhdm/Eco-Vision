@@ -41,7 +41,11 @@ fun CompanyDashboardScreen() {
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
     // Multi-page Tab Navigation State
-    var companyTab by remember { mutableIntStateOf(0) }
+    val externalCompanyTab by SessionManager.companyTab.collectAsState()
+    var companyTab by remember { mutableIntStateOf(externalCompanyTab) }
+    LaunchedEffect(externalCompanyTab) {
+        companyTab = externalCompanyTab
+    }
     val tabs = listOf(
         "Godown Marketplace" to Icons.Default.Storefront,
         "Orders & Manifests" to Icons.Default.LocalShipping,
