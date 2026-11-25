@@ -35,7 +35,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            EcoVisionTheme {
+            val themeMode by SessionManager.themeMode.collectAsState()
+            EcoVisionTheme(themeMode = themeMode) {
                 MainAppHost()
             }
         }
@@ -80,7 +81,7 @@ fun MainAppHost() {
     )
 
     Scaffold(
-        containerColor = Slate900,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             if (isTopLevelScreen) {
                 EcoHeader(

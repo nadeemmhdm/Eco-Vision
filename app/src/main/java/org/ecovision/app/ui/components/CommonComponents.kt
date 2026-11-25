@@ -31,11 +31,31 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import org.ecovision.app.R
 import org.ecovision.app.data.EcoVoucher
 import org.ecovision.app.data.Profile
 import org.ecovision.app.data.SessionManager
 import org.ecovision.app.data.UserRole
 import org.ecovision.app.theme.*
+
+/**
+ * Official EcoVision Waste Management Truck Logo Composable
+ */
+@Composable
+fun EcoVisionAppLogo(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 48.dp,
+    contentScale: ContentScale = ContentScale.Fit
+) {
+    Image(
+        painter = painterResource(id = R.drawable.app_logo),
+        contentDescription = "EcoVision Logo",
+        modifier = modifier.size(size),
+        contentScale = contentScale
+    )
+}
 
 /**
  * Custom Coin Design with Center Leaf Motif:
@@ -135,15 +155,17 @@ fun EcoHeader(
     onWalletClick: () -> Unit
 ) {
     val profile by SessionManager.currentProfile.collectAsState()
+    val themeMode by SessionManager.themeMode.collectAsState()
 
     Surface(
-        color = Slate900,
-        modifier = Modifier.fillMaxWidth()
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth(),
+        shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -151,33 +173,22 @@ fun EcoHeader(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Brush.linearGradient(listOf(EcoEmerald500, EcoEmerald600))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Eco,
-                            contentDescription = "EcoVision",
-                            tint = Slate950,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    EcoVisionAppLogo(
+                        size = 44.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold
                         )
                         if (subtitle != null) {
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Slate400
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -188,11 +199,11 @@ fun EcoHeader(
                     if (profile != null && (profile?.role == "user" || profile?.role == null)) {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = Slate800,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             modifier = Modifier
                                 .clickable { onWalletClick() }
-                                .padding(end = 10.dp)
+                                .padding(end = 8.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -220,7 +231,7 @@ fun EcoHeader(
                             shape = RoundedCornerShape(12.dp),
                             color = badgeColor.copy(alpha = 0.15f),
                             border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f)),
-                            modifier = Modifier.padding(end = 10.dp)
+                            modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(
                                 text = (profile?.role ?: "").uppercase(),
@@ -232,20 +243,42 @@ fun EcoHeader(
                         }
                     }
 
+                    // Auto/Light/Dark Theme Switcher Quick Toggle
+                    IconButton(
+                        onClick = { SessionManager.toggleThemeMode() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(
+                            imageVector = when (themeMode) {
+                                ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                ThemeMode.LIGHT -> Icons.Default.LightMode
+                                ThemeMode.DARK -> Icons.Default.DarkMode
+                            },
+                            contentDescription = "Toggle Theme (Auto / Light / Dark)",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     // Profile Avatar
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(Slate800)
-                            .border(1.dp, CardBorderBright, CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                             .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Profile",
-                            tint = Slate200,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -892,10 +925,10 @@ fun EcoFloatingBottomBar(
     ) {
         // Bottom Dock Surface
         Surface(
-            color = Slate950,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 10.dp,
             shadowElevation = 16.dp,
-            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorderBright),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -1000,7 +1033,7 @@ fun EcoFloatingBottomBar(
                         )
                     )
                 )
-                .border(3.dp, Slate950, CircleShape)
+                .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
                 .clickable { onCenterScanClick() },
             contentAlignment = Alignment.Center
         ) {
@@ -1032,14 +1065,14 @@ private fun BottomNavIconItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isSelected) EcoEmerald400 else Slate400,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             fontSize = 10.sp,
-            color = if (isSelected) EcoEmerald400 else Slate400,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }
@@ -1057,30 +1090,38 @@ fun LiquidGlassCard(
     highlightColor: Color = EcoEmerald400,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background == Slate950
     Surface(
-        color = Slate900.copy(alpha = 0.72f),
+        color = if (isDark) Slate900.copy(alpha = 0.80f) else Color.White,
         shape = RoundedCornerShape(cornerRadius),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.25.dp,
             brush = Brush.linearGradient(
-                colors = listOf(
+                colors = if (isDark) listOf(
                     Color.White.copy(alpha = 0.40f),
                     highlightColor.copy(alpha = 0.35f),
                     Color.White.copy(alpha = 0.08f)
+                ) else listOf(
+                    highlightColor.copy(alpha = 0.5f),
+                    Color(0xFFE2E8F0),
+                    highlightColor.copy(alpha = 0.2f)
                 )
             )
         ),
-        shadowElevation = 8.dp,
+        shadowElevation = if (isDark) 8.dp else 4.dp,
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
+                        colors = if (isDark) listOf(
                             Color.White.copy(alpha = 0.05f),
                             Color.Transparent,
                             Color.Black.copy(alpha = 0.35f)
+                        ) else listOf(
+                            Color.White,
+                            Color(0xFFF8FAFC)
                         )
                     )
                 )

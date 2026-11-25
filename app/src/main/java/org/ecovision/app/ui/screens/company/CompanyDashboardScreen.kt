@@ -81,7 +81,7 @@ fun CompanyDashboardScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate900)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

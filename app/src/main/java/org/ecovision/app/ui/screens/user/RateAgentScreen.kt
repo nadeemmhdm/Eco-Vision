@@ -39,7 +39,7 @@ fun RateAgentScreen(
     var statusMessage by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        containerColor = Slate900,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier
@@ -48,13 +48,13 @@ fun RateAgentScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Rate Pickup Agent",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
             }

@@ -32,7 +32,7 @@ fun MaintenanceScreen(onRecovery: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate950)
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {

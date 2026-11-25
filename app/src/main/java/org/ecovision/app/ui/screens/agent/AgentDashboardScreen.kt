@@ -58,7 +58,7 @@ fun AgentDashboardScreen() {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate900)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {

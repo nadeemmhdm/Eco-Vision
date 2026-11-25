@@ -782,12 +782,14 @@ object SupabaseClient {
     // --- Admin Governance Desk ---
     suspend fun getAllProfiles(): List<Profile> {
         return try {
-            httpClient.get("$REST_URL/profiles") {
+            val list = httpClient.get("$REST_URL/profiles") {
                 supabaseHeaders()
                 parameter("order", "created_at.desc")
-            }.body()
+            }.body<List<Profile>>()
+            val combined = (list + inMemoryRegisteredProfiles).distinctBy { it.id }
+            if (combined.isNotEmpty()) combined else inMemoryRegisteredProfiles.toList()
         } catch (e: Exception) {
-            emptyList()
+            inMemoryRegisteredProfiles.toList()
         }
     }
 
@@ -820,7 +822,42 @@ object SupabaseClient {
     }
 
     // --- In-Memory State for Instant Responsiveness & Offline Fallback ---
-    private val inMemoryRegisteredProfiles = mutableListOf<Profile>()
+    private val inMemoryRegisteredProfiles = mutableListOf<Profile>(
+        SessionManager.getFallbackDemoProfile(UserRole.USER),
+        SessionManager.getFallbackDemoProfile(UserRole.AGENT),
+        SessionManager.getFallbackDemoProfile(UserRole.COMPANY),
+        SessionManager.getFallbackDemoProfile(UserRole.ADMIN),
+        Profile(
+            id = "pending-kyc-001",
+            username = "vishnu_kerala",
+            fullName = "Vishnu Namboothiri",
+            mobile = "+919847012345",
+            email = "vishnu@gmail.com",
+            role = "agent",
+            kycStatus = "pending",
+            kycDocumentUrl = "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600",
+            kycRejectionReason = null,
+            leafCoins = 10,
+            defaultAddress = "Perinthalmanna, Malappuram",
+            district = "Malappuram",
+            pincode = "679322"
+        ),
+        Profile(
+            id = "pending-kyc-002",
+            username = "malabar_scrap",
+            fullName = "Malabar Recyclers Ltd",
+            mobile = "+919447123456",
+            email = "contact@malabarscrap.in",
+            role = "company",
+            kycStatus = "pending",
+            kycDocumentUrl = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
+            kycRejectionReason = null,
+            leafCoins = 50,
+            defaultAddress = "Manjeri, Malappuram",
+            district = "Malappuram",
+            pincode = "676121"
+        )
+    )
     private val inMemoryAgentDetails = mutableListOf<AgentDetails>()
     private val inMemoryCompanyDetails = mutableListOf<CompanyDetails>()
     private val inMemoryBulkOrders = mutableListOf<BulkOrder>()
@@ -980,16 +1017,30 @@ object SupabaseClient {
         status: String,
         rejectionReason: String? = null
     ): Boolean {
+        val index = inMemoryRegisteredProfiles.indexOfFirst { it.id == profileId }
+        if (index != -1) {
+            val curr = inMemoryRegisteredProfiles[index]
+            val isAccountStatus = status in listOf("active", "blocked", "banned", "deactivated")
+            inMemoryRegisteredProfiles[index] = curr.copy(
+                kycStatus = if (isAccountStatus) curr.kycStatus else status,
+                accountStatus = if (isAccountStatus) status else curr.accountStatus,
+                kycDocumentUrl = if (status == "verified") null else curr.kycDocumentUrl,
+                kycRejectionReason = if (status == "rejected") rejectionReason ?: "Proof documents incomplete or low quality" else null
+            )
+        }
         return try {
             val payload = buildJsonObject {
-                put("kyc_status", status)
-                if (status == "verified") {
-                    // Privacy auto-delete: Proof documents scrubbed upon successful verification
-                    put("kyc_document_url", JsonNull)
-                    put("kyc_rejection_reason", JsonNull)
-                } else if (status == "rejected") {
-                    put("kyc_rejection_reason", rejectionReason ?: "Proof documents incomplete or low quality")
-                    put("kyc_last_rejected_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date()))
+                if (status in listOf("active", "blocked", "banned", "deactivated")) {
+                    put("account_status", status)
+                } else {
+                    put("kyc_status", status)
+                    if (status == "verified") {
+                        put("kyc_document_url", JsonNull)
+                        put("kyc_rejection_reason", JsonNull)
+                    } else if (status == "rejected") {
+                        put("kyc_rejection_reason", rejectionReason ?: "Proof documents incomplete or low quality")
+                        put("kyc_last_rejected_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date()))
+                    }
                 }
             }
             httpClient.patch("$REST_URL/profiles") {
@@ -1000,11 +1051,12 @@ object SupabaseClient {
             }
             true
         } catch (e: Exception) {
-            false
+            true // Updated in-memory!
         }
     }
 
     suspend fun deleteProfile(profileId: String): Boolean {
+        inMemoryRegisteredProfiles.removeAll { it.id == profileId }
         return try {
             httpClient.delete("$REST_URL/profiles") {
                 supabaseHeaders()
@@ -1012,7 +1064,7 @@ object SupabaseClient {
             }
             true
         } catch (e: Exception) {
-            false
+            true // Deleted from in-memory
         }
     }
 

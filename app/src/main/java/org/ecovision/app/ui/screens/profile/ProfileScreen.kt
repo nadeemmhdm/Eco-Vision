@@ -43,6 +43,7 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val profile by SessionManager.currentProfile.collectAsState()
+    val themeMode by SessionManager.themeMode.collectAsState()
     val agentDetails by SessionManager.agentDetails.collectAsState()
     val companyDetails by SessionManager.companyDetails.collectAsState()
     val scope = rememberCoroutineScope()
@@ -101,7 +102,7 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        containerColor = Slate900,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier
@@ -110,14 +111,14 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
                         text = "Profile & Account Center",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
@@ -266,9 +267,102 @@ fun ProfileScreen(
             }
 
             // ==========================================
-            // SECTION 03: TWO-FACTOR AUTHENTICATION (2FA TOTP)
+            // SECTION 03: APP THEME & APPEARANCE (Auto / Light / Dark)
             // ==========================================
-            SectionHeader(number = "03", title = "Two-Factor Authentication (2FA TOTP)")
+            SectionHeader(number = "03", title = "App Appearance & Theme")
+            GlassCard {
+                Text(
+                    text = "Display Theme Mode",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Choose your preferred display style or let EcoVision adapt to your device automatically.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                val themeOptions = listOf(
+                    Triple(ThemeMode.SYSTEM, "Auto Detect", "Follows system dark/light schedule"),
+                    Triple(ThemeMode.LIGHT, "Light Theme", "Crisp whites and vibrant emeralds"),
+                    Triple(ThemeMode.DARK, "Dark Theme", "Obsidian glass and neon accents")
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    themeOptions.forEach { (mode, label, desc) ->
+                        val isSelected = themeMode == mode
+                        Surface(
+                            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    SessionManager.setThemeMode(mode)
+                                    statusMessage = "Switched to $label mode"
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = when (mode) {
+                                            ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                            ThemeMode.LIGHT -> Icons.Default.LightMode
+                                            ThemeMode.DARK -> Icons.Default.DarkMode
+                                        },
+                                        contentDescription = label,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = label,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = desc,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
+            // SECTION 04: TWO-FACTOR AUTHENTICATION (2FA TOTP)
+            // ==========================================
+            SectionHeader(number = "04", title = "Two-Factor Authentication (2FA TOTP)")
             GlassCard {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

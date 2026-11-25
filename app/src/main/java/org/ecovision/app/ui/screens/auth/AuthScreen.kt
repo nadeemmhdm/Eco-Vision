@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoButton
+import org.ecovision.app.ui.components.EcoVisionAppLogo
 import org.ecovision.app.ui.components.GlassCard
 import org.ecovision.app.ui.components.StatusBadge
 
@@ -112,21 +113,10 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Brand Header with Icon
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(EcoEmerald500),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Eco,
-                    contentDescription = "Logo",
-                    tint = Slate950,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
+            // Official Waste Truck App Logo
+            EcoVisionAppLogo(
+                size = 72.dp
+            )
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "EcoVision",

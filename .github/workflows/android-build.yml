@@ -78,16 +78,44 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.6
-          name: EcoVision Release v1.0.6
+          tag_name: v1.0.7
+          name: EcoVision Release v1.0.7
           draft: false
           prerelease: false
           body: |
-            ### 🪙 EcoVision Release v1.0.6 (Latest APK)
+            ### 🪙 EcoVision Release v1.0.7 (Latest APK)
 
-            Complete AI-Powered Smart Waste Management, Liquid Glass UI, Multi-Desk Governance & Flippable Voucher Platform for Android.
+            Complete AI-Powered Smart Waste Management, Dark/Light Theme Engine, Streamlined Stitch UI, Official App Logo & Verified Doorstep Collection Platform for Android.
 
-            #### 🚀 What's New in v1.0.6:
+            #### 🚀 What's New in v1.0.7:
+            - **🌓 Dynamic Dark & Light Themes with System Auto-Detect**:
+              - Complete dual theme engine (`DarkColorScheme` and `LightColorScheme`) that automatically detects Android system appearance (`isSystemInDarkTheme()`).
+              - Instant 1-tap Theme Switcher button in the top navigation header (`EcoHeader`) cycling between **Auto Detect / Light / Dark**.
+              - Dedicated **App Appearance & Theme** selector card in Profile Screen with real-time preference persistence.
+              - Crisp high-contrast surfaces (`#FFFFFF` on `#F8FAFC`) in Light Mode and sleek obsidian depth (`#0F172A` on `#050811`) in Dark Mode.
+            - **🚚 Official Waste Truck App Logo Integration**:
+              - Integrated official green waste collection compactor truck logo across the entire app.
+              - Pulsing splash screen loading icon with glowing halo ring.
+              - Onboarding screen hero winding road illustration and top brand bar.
+              - System Android adaptive launcher icon (`ic_launcher_foreground.xml`) and Android 12+ splash theme (`themes.xml`).
+              - Authentication sign-in/register header and app top bars.
+            - **✨ Streamlined Stitch User Dashboard**:
+              - Removed redundant non-functional cards and cluttered filler elements for maximum clarity and speed.
+              - Curved emerald top hero header with official logo, "Hi [User Name]!", "122 Items" recycled counter, and 3 circular progress gauges (Recycled 65%, Compost 5%, Rubbish 2%).
+              - Search bar with instant camera scan button.
+              - 3 Interactive Smart Bins (Green Caddy for Organics, Red Bin for Hazardous/E-Waste, Blue Bin for Dry Paper/Plastics).
+            - **📞 100% Interactive Live Pickup Tracking**:
+              - Real working **Call** button (launches Android phone dialer for assigned agent Rafiq Khan).
+              - Real working **Chat** button (opens live in-app chat dialog with Rafiq Khan).
+              - Real working **Verify Vehicle** button (opens modal with vehicle plate `KL-07-AB-1234`, driver badge, and secure 4-digit doorstep PIN handshake `4829`).
+              - 1-click **Schedule Doorstep Pickup** modal with address and time-slot selection.
+            - **🛡️ 100% Real Working Admin & Governance Desks**:
+              - KYC Verification Desk with seed pending applicants (Vishnu Namboothiri, Malabar Recyclers) with real document proofs.
+              - Working **Accept KYC ✓** button (approves applicant, purges document for privacy compliance, and moves them to approved).
+              - Working **Reject KYC** button (selects rejection reason and enforces cooldown).
+              - User Governance Desk (Block/Unblock, 30-Day Safe Deletion).
+              - Voucher Studio (create voucher with image and coin cost, real-time 3D flippable preview).
+              - Cash Redeems Desk (verify UPI IDs and approve direct wallet cash payouts: 10 Coins = ₹1).
             - **✨ Simplified Multi-Page Admin & Company Dashboards**:
               - Transformed monolithic dashboard into 5 clean, uncluttered sub-pages / tabs:
                 - `01. KYC Verification Desk`: Instant identity review, proof inspection, one-click "Accept KYC ✓" approval.

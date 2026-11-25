@@ -6,15 +6,46 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.ecovision.app.EcoVisionApplication
+import org.ecovision.app.theme.ThemeMode
 
 object SessionManager {
 
     private const val PREFS_NAME = "ecovision_session_prefs"
     private const val KEY_USER_MOBILE = "saved_user_mobile"
     private const val KEY_USER_ID = "saved_user_id"
+    private const val KEY_THEME_MODE = "saved_theme_mode"
 
     private val prefs: SharedPreferences by lazy {
         EcoVisionApplication.instance.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val _themeMode = MutableStateFlow<ThemeMode>(
+        try {
+            when (prefs.getString(KEY_THEME_MODE, "SYSTEM")) {
+                "LIGHT" -> ThemeMode.LIGHT
+                "DARK" -> ThemeMode.DARK
+                else -> ThemeMode.SYSTEM
+            }
+        } catch (e: Exception) {
+            ThemeMode.SYSTEM
+        }
+    )
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: ThemeMode) {
+        _themeMode.value = mode
+        try {
+            prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
+        } catch (e: Exception) { }
+    }
+
+    fun toggleThemeMode() {
+        val next = when (_themeMode.value) {
+            ThemeMode.SYSTEM -> ThemeMode.LIGHT
+            ThemeMode.LIGHT -> ThemeMode.DARK
+            ThemeMode.DARK -> ThemeMode.SYSTEM
+        }
+        setThemeMode(next)
     }
 
     private val _currentProfile = MutableStateFlow<Profile?>(null)

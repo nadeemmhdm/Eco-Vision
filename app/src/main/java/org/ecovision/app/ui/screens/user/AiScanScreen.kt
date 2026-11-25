@@ -163,7 +163,7 @@ fun AiScanScreen(
     }
 
     Scaffold(
-        containerColor = Slate900,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier

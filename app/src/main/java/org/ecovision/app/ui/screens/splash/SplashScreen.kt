@@ -30,7 +30,11 @@ import org.ecovision.app.data.Profile
 import org.ecovision.app.data.SessionManager
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoCoinIcon
+import org.ecovision.app.ui.components.EcoVisionAppLogo
 import org.ecovision.app.ui.components.StatusBadge
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import org.ecovision.app.R
 
 @Composable
 fun SplashScreen(
@@ -114,20 +118,7 @@ fun SplashScreen(
                         .padding(top = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF15803D)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Eco,
-                            contentDescription = "Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    EcoVisionAppLogo(size = 40.dp)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "EcoVision",
@@ -222,36 +213,15 @@ fun SplashScreen(
                             )
                         }
 
-                        // 3D Recycling Truck Emblem on the road
-                        Surface(
-                            color = Color(0xFF16A34A),
-                            shape = RoundedCornerShape(16.dp),
-                            shadowElevation = 10.dp,
+                        // Official 3D Waste Truck Logo driving on the hill road
+                        Image(
+                            painter = painterResource(id = R.drawable.app_logo),
+                            contentDescription = "Collection Truck",
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(end = 24.dp)
-                                .size(90.dp, 64.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.LocalShipping,
-                                    contentDescription = "Collection Truck",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(38.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    Icons.Default.Eco,
-                                    contentDescription = "Eco",
-                                    tint = Color(0xFFDCFCE7),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                                .padding(end = 16.dp, top = 20.dp)
+                                .size(width = 220.dp, height = 140.dp)
+                        )
                     }
                 }
 
@@ -337,24 +307,16 @@ fun SplashScreen(
                         .background(EcoEmerald500.copy(alpha = glowAlpha)),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Inner Icon Container
+                    // Inner Official Logo Container
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(100.dp)
                             .clip(RoundedCornerShape(28.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(EcoEmerald400, EcoEmerald600)
-                                )
-                            ),
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .border(1.5.dp, EcoEmerald400.copy(alpha = 0.6f), RoundedCornerShape(28.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Eco,
-                            contentDescription = "EcoVision Logo",
-                            tint = Slate950,
-                            modifier = Modifier.size(54.dp)
-                        )
+                        EcoVisionAppLogo(size = 80.dp)
                     }
                 }
 

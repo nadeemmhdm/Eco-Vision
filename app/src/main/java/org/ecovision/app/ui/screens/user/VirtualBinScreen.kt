@@ -61,7 +61,7 @@ fun VirtualBinScreen(
     val isThresholdMet = totalAmount >= thresholdAmount || totalWeight >= thresholdWeight
 
     Scaffold(
-        containerColor = Slate900,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier
@@ -70,7 +70,7 @@ fun VirtualBinScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
