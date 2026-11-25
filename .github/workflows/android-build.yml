@@ -58,6 +58,19 @@ jobs:
           tail -n 60 gradle_output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+          while IFS= read -r err_line; do
+            echo "::error::$err_line"
+          done < <(grep -E "^e: " gradle_output.log | head -n 30)
+
+          ERR_DETAILS=$(grep -E "e: |FAILED|Compilation error|Caused by:" -C 3 gradle_output.log | head -n 80 || tail -n 50 gradle_output.log)
+          curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d "$(jq -n --arg body "### ❌ Gradle Build Error:
+\`\`\`
+$ERR_DETAILS
+\`\`\`" '{"body": $body}')" || true
+
       - name: Upload Build Log
         if: always()
         uses: actions/upload-artifact@v4
