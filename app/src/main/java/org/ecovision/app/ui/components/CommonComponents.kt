@@ -446,7 +446,7 @@ fun Image3PickupLiveCard(
     onChatClick: () -> Unit = {},
     onVerifyClick: () -> Unit = {},
     verifyButtonText: String = "Verify Vehicle",
-    verifyButtonIcon: ImageVector = Icons.Default.Verified
+    verifyButtonIcon: ImageVector = Icons.Default.VerifiedUser
 ) {
     Column(
         modifier = modifier

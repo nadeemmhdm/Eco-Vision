@@ -188,7 +188,7 @@ fun AgentDashboardScreen() {
                         statusMessage = "Vehicle verified! Proceed to household for scale weighing."
                     },
                     verifyButtonText = "Doorstep Weigh",
-                    verifyButtonIcon = Icons.Default.Scale
+                    verifyButtonIcon = Icons.Default.Balance
                 )
             }
         } else {
@@ -212,14 +212,14 @@ fun AgentDashboardScreen() {
                     vehiclePlate = agentDetails?.vehicleNumber ?: "KL-07-AB-1234",
                     vehicleType = "Green Van",
                     addressText = req.pickupAddress,
-                    onCallClick = { statusMessage = "Connecting to ${req.userName ?: "Household"} at ${req.userPhone ?: "+91 98470 12345"}..." },
-                    onChatClick = { statusMessage = "Opening chat with ${req.userName ?: "Household"}..." },
+                    onCallClick = { statusMessage = "Connecting to ${req.user?.fullName ?: "Household"} at ${req.user?.mobile ?: "+91 98470 12345"}..." },
+                    onChatClick = { statusMessage = "Opening chat with ${req.user?.fullName ?: "Household"}..." },
                     onVerifyClick = {
                         selectedPickupForWeighing = req
                         actualScaleWeight = "${req.totalEstimatedWeight}"
                     },
                     verifyButtonText = if (req.status == "at_doorstep") "Spot Weigh & Pay" else "Arrived Doorstep",
-                    verifyButtonIcon = if (req.status == "at_doorstep") Icons.Default.Scale else Icons.Default.LocationOn
+                    verifyButtonIcon = if (req.status == "at_doorstep") Icons.Default.Balance else Icons.Default.LocationOn
                 )
             }
         }
@@ -353,18 +353,19 @@ fun AgentDashboardScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(text = item.categoryName, style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                            Text(text = "Weight: ${item.weightKg} kg · Status: ${item.status.uppercase()}", color = Slate400, fontSize = 11.sp)
+                            val catTitle = item.categoryId.replace("_", " ").uppercase()
+                            Text(text = catTitle, style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(text = "Weight: ${item.verifiedWeightKg} kg · Status: ${item.status.uppercase()}", color = Slate400, fontSize = 11.sp)
                         }
 
-                        if (item.status == "in_transit") {
+                        if (item.status == "pending_acceptance") {
                             EcoButton(
                                 text = "Accept to Godown",
-                                icon = Icons.Default.Warehouse,
+                                icon = Icons.Default.Inventory,
                                 onClick = {
                                     scope.launch {
-                                        SupabaseClient.acceptGodownStock(item.id)
-                                        statusMessage = "Accepted ${item.weightKg} kg ${item.categoryName} into Malappuram Central Godown!"
+                                        SupabaseClient.acceptToGodownStock(item.id)
+                                        statusMessage = "Accepted ${item.verifiedWeightKg} kg into Malappuram Central Godown!"
                                         refresh()
                                     }
                                 }
@@ -424,7 +425,7 @@ fun AgentDashboardScreen() {
                         scope.launch {
                             val weight = actualScaleWeight.toDoubleOrNull() ?: req.totalEstimatedWeight
                             val finalAmount = weight * 18.0
-                            SupabaseClient.completeSpotWeighing(req.id, weight, finalAmount)
+                            SupabaseClient.completePickupAndDepositGodown(req, profile?.id ?: "agent", weight, finalAmount)
                             statusMessage = "Doorstep weighing complete! ₹${String.format("%.2f", finalAmount)} credited to household."
                             selectedPickupForWeighing = null
                             refresh()

@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 // Stitch & EcoVision Design Palette
 val EcoEmerald500 = Color(0xFF10B981)
 val EcoEmerald600 = Color(0xFF059669)
+val EcoEmerald700 = Color(0xFF047857)
 val EcoEmerald800 = Color(0xFF065F46)
 val EcoEmerald900 = Color(0xFF064E3B)
 val EcoEmerald400 = Color(0xFF34D399)

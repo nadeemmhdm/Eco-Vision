@@ -511,13 +511,13 @@ fun ProfileScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Reason: ${profile?.rejectionReason ?: "Low image quality. Please upload a clear photo of your official ID document."}",
+                                text = "Reason: ${profile?.kycRejectionReason ?: "Low image quality. Please upload a clear photo of your official ID document."}",
                                 color = Color.White,
                                 fontSize = 11.sp
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Attempts: ${profile?.kycAttempts ?: 1} of 5 daily attempts used",
+                                text = "Attempts: ${profile?.kycAttemptCount ?: 1} of 5 daily attempts used",
                                 color = Slate400,
                                 fontSize = 11.sp
                             )
@@ -588,16 +588,16 @@ fun ProfileScreen(
                             onClick = {
                                 scope.launch {
                                     isSubmittingKyc = true
-                                    val currentAttempts = (profile?.kycAttempts ?: 0) + 1
+                                    val currentAttempts = (profile?.kycAttemptCount ?: 0) + 1
                                     if (currentAttempts > 5) {
                                         errorMessage = "Daily attempt limit (5) reached. Please wait 24 hours to re-apply."
                                     } else if (profile != null) {
                                         val updated = profile!!.copy(
                                             kycDocumentNumber = idDocNumber,
-                                            kycProofUrl = kycProofUri ?: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400",
+                                            kycDocumentUrl = kycProofUri ?: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400",
                                             kycStatus = "pending",
-                                            kycAttempts = currentAttempts,
-                                            rejectionReason = null
+                                            kycAttemptCount = currentAttempts,
+                                            kycRejectionReason = null
                                         )
                                         SupabaseClient.updateProfile(updated)
                                         SessionManager.updateCurrentProfile(updated)
