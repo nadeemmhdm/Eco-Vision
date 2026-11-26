@@ -78,12 +78,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.16
-          name: EcoVision Release v1.0.16
+          tag_name: v1.0.17
+          name: EcoVision Release v1.0.17
           draft: false
           prerelease: false
           body: |
-            ### 🚀 EcoVision Release v1.0.16 (Google Stitch Auth Redesign & Performance Optimization)
+            ### 🚀 EcoVision Release v1.0.17 (Real Database Registration & Sign-In Fix)
+
+            #### ✨ What's New in v1.0.17:
+            - **✅ Fixed New Account Registration & Sign-In Persistence**: Configured `explicitNulls = false` in `SupabaseClient.jsonConfig` so PostgreSQL `DEFAULT now()` is used instead of sending `"created_at": null` (which previously caused `NOT NULL` constraint HTTP 400 errors and prevented new accounts from saving to Supabase).
+            - **🗄️ Real Database Only**: `createProfile` now verifies HTTP 2xx persistence before signing in, and all example users, products, and seed data are cleared from Supabase so only real database records exist.
 
             #### ✨ What's New in v1.0.16:
             - **🎨 Google Stitch Login & Register Redesign**: Updated `AuthScreen` to use the unified Modern Organic Minimalism theme (`MaterialTheme.colorScheme` adaptive Light/Dark canvas, rounded 14dp fields, Stitch segmented pill toggle, and responsive `520.dp` container).

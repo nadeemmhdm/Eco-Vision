@@ -24,10 +24,12 @@ object SupabaseClient {
     private const val REST_URL = "$BASE_URL/rest/v1"
     private const val ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhcmt0dGJmcW1mZ2Nld2RkdnRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0NjA1MjYsImV4cCI6MjEwMTAzNjUyNn0.PLuujmtJ4AlQoI2q3xYoV-EBbtbO1sjIqde72GocVB0"
 
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     val jsonConfig = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
+        explicitNulls = false
     }
 
     private val httpClient = HttpClient(CIO) {
@@ -108,22 +110,14 @@ object SupabaseClient {
     }
 
     suspend fun createProfile(profile: Profile, agentDetails: AgentDetails? = null, companyDetails: CompanyDetails? = null): Profile? {
-        inMemoryRegisteredProfiles.removeAll { it.id == profile.id || it.mobile == profile.mobile }
-        inMemoryRegisteredProfiles.add(profile)
-        if (agentDetails != null) {
-            inMemoryAgentDetails.removeAll { it.agentId == profile.id }
-            inMemoryAgentDetails.add(agentDetails)
-        }
-        if (companyDetails != null) {
-            inMemoryCompanyDetails.removeAll { it.companyId == profile.id }
-            inMemoryCompanyDetails.add(companyDetails)
-        }
-
         return try {
             val response = httpClient.post("$REST_URL/profiles") {
                 supabaseHeaders(preferReturn = true)
                 contentType(ContentType.Application.Json)
                 setBody(profile)
+            }
+            if (response.status.value !in 200..299) {
+                return null
             }
             val created = try {
                 response.body<List<Profile>>().firstOrNull() ?: profile
@@ -131,29 +125,37 @@ object SupabaseClient {
                 profile
             }
 
+            inMemoryRegisteredProfiles.removeAll { it.id == created.id || it.mobile == created.mobile }
+            inMemoryRegisteredProfiles.add(created)
+
             if (agentDetails != null) {
                 try {
+                    val agentPayload = agentDetails.copy(agentId = created.id)
                     httpClient.post("$REST_URL/agent_details") {
                         supabaseHeaders()
                         contentType(ContentType.Application.Json)
-                        setBody(agentDetails.copy(agentId = created.id))
+                        setBody(agentPayload)
                     }
-                } catch (e: Exception) { }
+                    inMemoryAgentDetails.removeAll { it.agentId == created.id }
+                    inMemoryAgentDetails.add(agentPayload)
+                } catch (_: Exception) { }
             }
             if (companyDetails != null) {
                 try {
+                    val companyPayload = companyDetails.copy(companyId = created.id)
                     httpClient.post("$REST_URL/company_details") {
                         supabaseHeaders()
                         contentType(ContentType.Application.Json)
-                        setBody(companyDetails.copy(companyId = created.id))
+                        setBody(companyPayload)
                     }
-                } catch (e: Exception) { }
+                    inMemoryCompanyDetails.removeAll { it.companyId == created.id }
+                    inMemoryCompanyDetails.add(companyPayload)
+                } catch (_: Exception) { }
             }
             created
         } catch (e: Exception) {
             e.printStackTrace()
-            // Resilient fallback: return local profile so user is NEVER blocked by network/PGRST errors
-            profile
+            null
         }
     }
 
