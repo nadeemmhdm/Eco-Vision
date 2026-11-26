@@ -304,11 +304,24 @@ fun MainAppHost() {
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                    onNavigateToMyOrders = { navController.navigate(Screen.MyOrders.route) },
+                    onNavigateToSecurity = { navController.navigate(Screen.Security.route) },
                     onNavigateToAbout = { navController.navigate(Screen.About.route) },
                     onNavigateToTerms = { navController.navigate(Screen.Terms.route) },
                     onNavigateToPrivacy = { navController.navigate(Screen.PrivacyPolicy.route) },
-                    onNavigateToFaq = { navController.navigate(Screen.Faq.route) }
+                    onNavigateToFaq = { navController.navigate(Screen.Faq.route) },
+                    onLogout = {
+                        navController.navigate(Screen.Auth.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
+            }
+            composable(Screen.MyOrders.route) {
+                MyOrdersScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Screen.Security.route) {
+                SecurityScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.About.route) {
                 AboutScreen(onBack = { navController.popBackStack() })

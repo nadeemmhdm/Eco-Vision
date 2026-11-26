@@ -94,11 +94,68 @@ fun CompanyDashboardScreen() {
         // 1. TOP 3D MASCOT HERO & LIQUID GLASS HEADER
         // ==========================================
         item {
-            Spacer(modifier = Modifier.height(4.dp))
-            AnimatedCharacterHero(
-                title = companyDetails?.companyName ?: "B2B Procurement Desk",
-                subtitle = "Verified Godown Stock • Digital Dispatch Manifests • ESG Offsets"
-            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF1E3A8A), Color(0xFF1D4ED8), Color(0xFF2563EB))
+                        )
+                    )
+                    .padding(18.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Business, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = companyDetails?.companyName ?: profile?.fullName ?: "GreenLoop Recyclers",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Text(
+                                    text = "GSTIN: ${companyDetails?.gstNumber ?: "32AABCG1234F1Z5"} • ${profile?.district ?: "Ernakulam"}",
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                        StatusBadge(text = "VERIFIED BUYER", color = EcoEmerald300, backgroundColor = Color.Black.copy(alpha = 0.3f))
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("GODOWN LOTS", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("${pooledStock.size} Active", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Column {
+                            Text("PROCURED", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("${totalProcuredKg.toInt()} kg", color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("CO₂ OFFSET", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("${totalCo2Saved.toInt()} kg", color = EcoEmerald300, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
         }
 
         // ==========================================

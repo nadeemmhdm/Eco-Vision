@@ -16,8 +16,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -32,6 +34,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
@@ -1100,166 +1103,121 @@ fun EcoFloatingBottomBar(
                 .height(68.dp)
                 .align(Alignment.BottomCenter)
         ) {
-            BoxWithConstraints(
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val dockWidth = maxWidth
-                val fabSpace = 56.dp
-                val slotWidth = (dockWidth - fabSpace) / 4f
-                val targetIndicatorX = when (activeSlotIndex) {
-                    0 -> slotWidth * 0.5f - 14.dp
-                    1 -> slotWidth * 1.5f - 14.dp
-                    2 -> slotWidth * 2.5f + fabSpace - 14.dp
-                    3 -> slotWidth * 3.5f + fabSpace - 14.dp
-                    else -> 0.dp
-                }
-                val animatedIndicatorX by animateDpAsState(
-                    targetValue = targetIndicatorX,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
-                    label = "sliding_nav_bar_indicator"
-                )
-
-                // Horizontally sliding top indicator pill that moves smoothly from one link to another
-                if (activeSlotIndex >= 0) {
-                    Box(
-                        modifier = Modifier
-                            .offset(x = animatedIndicatorX, y = 2.dp)
-                            .width(28.dp)
-                            .height(3.5.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
+                // Item 1: Home
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    BottomNavIconItem(
+                        label = "Home",
+                        icon = Icons.Default.Home,
+                        isSelected = item1Selected,
+                        onClick = {
+                            when (role) {
+                                "agent" -> {
+                                    SessionManager.setAgentTab(0)
+                                    onNavigate("agent_dashboard")
+                                }
+                                "company" -> {
+                                    SessionManager.setCompanyTab(0)
+                                    onNavigate("company_dashboard")
+                                }
+                                "admin" -> {
+                                    SessionManager.setAdminTab(0)
+                                    onNavigate("admin_dashboard")
+                                }
+                                else -> onNavigate("user_home")
+                            }
+                        }
                     )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Item 1: Home / Primary Desk
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        BottomNavIconItem(
-                            label = when (role) {
-                                "company" -> "Godown"
-                                "admin" -> "KYC"
-                                "agent" -> "Home"
-                                else -> "Home"
-                            },
-                            icon = when (role) {
-                                "company" -> Icons.Default.Storefront
-                                "admin" -> Icons.Default.VerifiedUser
-                                "agent" -> Icons.Default.Home
-                                else -> Icons.Default.Home
-                            },
-                            isSelected = item1Selected,
-                            onClick = {
-                                when (role) {
-                                    "agent" -> {
-                                        SessionManager.setAgentTab(0)
-                                        onNavigate("agent_dashboard")
-                                    }
-                                    "company" -> {
-                                        SessionManager.setCompanyTab(0)
-                                        onNavigate("company_dashboard")
-                                    }
-                                    "admin" -> {
-                                        SessionManager.setAdminTab(0)
-                                        onNavigate("admin_dashboard")
-                                    }
-                                    else -> onNavigate("user_home")
+                // Item 2: Operations / Pickups / Orders / User Governance
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    BottomNavIconItem(
+                        label = when (role) {
+                            "company" -> "Orders"
+                            "admin" -> "Gov"
+                            "agent" -> "Pickups"
+                            else -> "Bin"
+                        },
+                        icon = when (role) {
+                            "company" -> Icons.Default.Inventory
+                            "admin" -> Icons.Default.People
+                            "agent" -> Icons.Default.LocalShipping
+                            else -> Icons.Default.DeleteOutline
+                        },
+                        isSelected = item2Selected,
+                        onClick = {
+                            when (role) {
+                                "agent" -> {
+                                    SessionManager.setAgentTab(1)
+                                    onNavigate("agent_dashboard")
                                 }
-                            }
-                        )
-                    }
-
-                    // Item 2: Operations / Pickups / Orders / User Governance
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        BottomNavIconItem(
-                            label = when (role) {
-                                "company" -> "Orders"
-                                "admin" -> "Gov"
-                                "agent" -> "Pickups"
-                                else -> "Bin"
-                            },
-                            icon = when (role) {
-                                "company" -> Icons.Default.Inventory
-                                "admin" -> Icons.Default.People
-                                "agent" -> Icons.Default.LocalShipping
-                                else -> Icons.Default.DeleteOutline
-                            },
-                            isSelected = item2Selected,
-                            onClick = {
-                                when (role) {
-                                    "agent" -> {
-                                        SessionManager.setAgentTab(1)
-                                        onNavigate("agent_dashboard")
-                                    }
-                                    "company" -> {
-                                        SessionManager.setCompanyTab(1)
-                                        onNavigate("company_dashboard")
-                                    }
-                                    "admin" -> {
-                                        SessionManager.setAdminTab(1)
-                                        onNavigate("admin_dashboard")
-                                    }
-                                    else -> onNavigate("virtual_bin")
+                                "company" -> {
+                                    SessionManager.setCompanyTab(1)
+                                    onNavigate("company_dashboard")
                                 }
-                            }
-                        )
-                    }
-
-                    // Spacer for the center elevated floating button
-                    Spacer(modifier = Modifier.width(fabSpace))
-
-                    // Item 3: Wallet / Redeems / History / ESG
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        BottomNavIconItem(
-                            label = when (role) {
-                                "company" -> "ESG"
-                                "admin" -> "Payouts"
-                                "agent" -> "History"
-                                else -> "Wallet"
-                            },
-                            icon = when (role) {
-                                "admin" -> Icons.Default.Payments
-                                "company" -> Icons.Default.Verified
-                                "agent" -> Icons.Default.History
-                                else -> Icons.Default.AccountBalanceWallet
-                            },
-                            isSelected = item3Selected,
-                            onClick = {
-                                when (role) {
-                                    "admin" -> {
-                                        SessionManager.setAdminTab(3)
-                                        onNavigate("admin_dashboard")
-                                    }
-                                    "company" -> {
-                                        SessionManager.setCompanyTab(2)
-                                        onNavigate("company_dashboard")
-                                    }
-                                    "agent" -> {
-                                        SessionManager.setAgentTab(2)
-                                        onNavigate("agent_dashboard")
-                                    }
-                                    else -> onNavigate("wallet")
+                                "admin" -> {
+                                    SessionManager.setAdminTab(1)
+                                    onNavigate("admin_dashboard")
                                 }
+                                else -> onNavigate("virtual_bin")
                             }
-                        )
-                    }
+                        }
+                    )
+                }
 
-                    // Item 4: Settings
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        BottomNavIconItem(
-                            label = "Settings",
-                            icon = Icons.Default.Settings,
-                            isSelected = item4Selected,
-                            onClick = { onNavigate("settings") }
-                        )
-                    }
+                // Spacer for the center elevated floating button
+                Spacer(modifier = Modifier.width(58.dp))
+
+                // Item 3: Wallet / Redeems / History / ESG
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    BottomNavIconItem(
+                        label = when (role) {
+                            "company" -> "ESG"
+                            "admin" -> "Payouts"
+                            "agent" -> "History"
+                            else -> "Wallet"
+                        },
+                        icon = when (role) {
+                            "admin" -> Icons.Default.Payments
+                            "company" -> Icons.Default.Verified
+                            "agent" -> Icons.Default.History
+                            else -> Icons.Default.AccountBalanceWallet
+                        },
+                        isSelected = item3Selected,
+                        onClick = {
+                            when (role) {
+                                "admin" -> {
+                                    SessionManager.setAdminTab(3)
+                                    onNavigate("admin_dashboard")
+                                }
+                                "company" -> {
+                                    SessionManager.setCompanyTab(2)
+                                    onNavigate("company_dashboard")
+                                }
+                                "agent" -> {
+                                    SessionManager.setAgentTab(2)
+                                    onNavigate("agent_dashboard")
+                                }
+                                else -> onNavigate("wallet")
+                            }
+                        }
+                    )
+                }
+
+                // Item 4: Settings
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    BottomNavIconItem(
+                        label = "Settings",
+                        icon = Icons.Default.Settings,
+                        isSelected = item4Selected,
+                        onClick = { onNavigate("settings") }
+                    )
                 }
             }
         }
@@ -1335,39 +1293,28 @@ private fun BottomNavIconItem(
     onClick: () -> Unit
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        targetValue = if (isSelected) 1.06f else 1.0f,
+        animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
         label = "nav_scale"
-    )
-    val verticalOffset by animateDpAsState(
-        targetValue = if (isSelected) (-3).dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "nav_offset"
     )
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = 150),
         label = "nav_color"
     )
-    val indicatorWidth by animateDpAsState(
-        targetValue = if (isSelected) 16.dp else 0.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "nav_indicator"
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 150),
+        label = "nav_bg"
     )
 
     Column(
         modifier = Modifier
-            .offset(y = verticalOffset)
             .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgColor)
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -1375,22 +1322,16 @@ private fun BottomNavIconItem(
             imageVector = icon,
             contentDescription = label,
             tint = iconColor,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(21.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             fontSize = 10.sp,
             color = iconColor,
-            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Box(
-            modifier = Modifier
-                .height(3.dp)
-                .width(indicatorWidth)
-                .clip(CircleShape)
-                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -1460,92 +1401,226 @@ fun FlippableVoucherCard(
     modifier: Modifier = Modifier,
     onRedeemClick: (() -> Unit)? = null
 ) {
-    // Users see ONLY voucher image, title, description, and coin cost (no voucher number or PIN)
-    LiquidGlassCard(
-        modifier = modifier.fillMaxWidth(),
-        cornerRadius = 18.dp,
-        highlightColor = LeafCoinGold
+    // Fixed uniform card size + animated flip when clicking image or title (NO voucher number or PIN)
+    var isFlipped by remember { mutableStateOf(false) }
+    val rotation by animateFloatAsState(
+        targetValue = if (isFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
+        label = "voucher_flip"
+    )
+
+    Box(
+        modifier = modifier
+            .height(255.dp)
+            .graphicsLayer {
+                rotationY = rotation
+                cameraDistance = 12f * density
+            }
     ) {
-        if (!voucher.imageUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = voucher.imageUrl,
-                contentDescription = voucher.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = voucher.brandName,
-                style = MaterialTheme.typography.labelLarge,
-                color = LeafCoinGold,
-                fontWeight = FontWeight.Bold
-            )
-
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, LeafCoinGold.copy(alpha = 0.5f))
+        if (rotation <= 90f) {
+            // FRONT: Image, Brand, Coin Cost, Title (Fixed uniform height)
+            LiquidGlassCard(
+                modifier = Modifier.fillMaxSize(),
+                cornerRadius = 18.dp,
+                highlightColor = LeafCoinGold
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(96.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable { isFlipped = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!voucher.imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = voucher.imageUrl,
+                            contentDescription = voucher.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(Icons.Default.CardGiftcard, null, tint = LeafCoinGold, modifier = Modifier.size(36.dp))
+                    }
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.65f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                    ) {
+                        Text("Tap for details ↺", color = Color.White, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    EcoCoinIcon(size = 16.dp)
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${voucher.coinCost} Coins",
+                        text = voucher.brandName,
+                        style = MaterialTheme.typography.labelMedium,
                         color = LeafCoinGold,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LeafCoinGold.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            EcoCoinIcon(size = 14.dp)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("${voucher.coinCost}", color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = voucher.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isFlipped = true }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (onRedeemClick != null) {
+                    Button(
+                        onClick = onRedeemClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp)
+                    ) {
+                        Text("Request Voucher (${voucher.coinCost} Coins)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                    }
+                }
+            }
+        } else {
+            // BACK: Full Title & Description (NO voucher number or PIN)
+            LiquidGlassCard(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { rotationY = 180f }
+                    .clickable { isFlipped = false },
+                cornerRadius = 18.dp,
+                highlightColor = EcoEmerald400
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(voucher.brandName, color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Tap to flip ↻", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = voucher.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = voucher.description ?: "Valid on EcoVision partner zero-waste products.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                if (onRedeemClick != null) {
+                    Button(
+                        onClick = onRedeemClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp)
+                    ) {
+                        Text("Request Voucher (${voucher.coinCost} Coins)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)
+                    }
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = voucher.title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.ExtraBold,
-            maxLines = 2
-        )
-
-        if (!voucher.description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = voucher.description,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-                maxLines = 3
-            )
-        }
-
-        if (onRedeemClick != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = onRedeemClick,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(vertical = 8.dp)
+@Composable
+fun EcoPopupDialog(
+    title: String,
+    message: String,
+    icon: ImageVector = Icons.Default.CheckCircle,
+    accentColor: Color = EcoEmerald500,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Request Voucher (${voucher.coinCost} Coins)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(30.dp))
+            }
+        },
+        title = {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("OK", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
-    }
+    )
 }
 
 /**

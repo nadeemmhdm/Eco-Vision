@@ -27,6 +27,8 @@ sealed class Screen(val route: String, val title: String) {
     // Settings & Info Pages
     data object Settings : Screen("settings", "Settings")
     data object Profile : Screen("profile", "Profile & Security")
+    data object Security : Screen("security", "Security & Devices")
+    data object MyOrders : Screen("my_orders", "My Orders")
     data object About : Screen("about", "About EcoVision")
     data object Terms : Screen("terms", "Terms and Conditions")
     data object PrivacyPolicy : Screen("privacy_policy", "Privacy Policy")

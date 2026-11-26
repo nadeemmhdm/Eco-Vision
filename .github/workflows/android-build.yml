@@ -78,29 +78,28 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.11
-          name: EcoVision Release v1.0.11
+          tag_name: v1.0.12
+          name: EcoVision Release v1.0.12
           draft: false
           prerelease: false
           body: |
-            ### 🚀 EcoVision Release v1.0.11 (Complete Platform & UX Upgrade)
+            ### 🚀 EcoVision Release v1.0.12 (UI/UX, Settings, Store Orders & Dashboards Upgrade)
 
-            #### ✨ What's New in v1.0.11:
-            - **🗑️ Onboarding Screen Removed**: Direct streamlined launch from Splash to Auth or Dashboard.
-            - **🧭 Animated Bottom Bar + Settings Hub**:
-              - Replaced Profile bottom tab with **Settings**, featuring a clean flat list of clickable pages: **Profile**, **About**, **Terms and Conditions**, **Privacy Policy**, and **FAQ** (each on its own dedicated page).
-              - Added a horizontally sliding animated active indicator pill moving smoothly from one nav link to another.
-            - **🚚 Pickup Agent Dashboard Fixed & Upgraded**:
-              - Distinct, working **Desk (Home)**, **Pickups**, and **History & Godown** tabs.
-              - Removed in-app messaging/chat in favor of direct platform phone calling (`Intent.ACTION_DIAL`).
-            - **🔔 Admin Push Notifications**:
-              - Super Admin can compose & broadcast push notifications to All Users, Citizens, Pickup Agents, or Buyer Companies with real Android notifications and home banners.
-            - **🎁 Profile Referral Sharing with App Logo**:
-              - Share your Referral Code along with the official EcoVision truck logo image and invitation message via `FileProvider`.
-            - **📍 All 14 Kerala Districts Picker**:
-              - Full scrollable 14 Kerala districts selector during registration.
-            - **💾 Offline Caching & Redeem Guard**:
-              - Vouchers and announcements cache to device storage for offline browsing, while Voucher & Cash Redemptions strictly require an active internet connection.
+            #### ✨ What's New in v1.0.12:
+            - **🧭 Snappy Bottom Nav Bar & Role Home Labels**:
+              - Fixed slow nav animation and overlapping indicator lines with a fast, crisp highlight pill.
+              - Renamed Buyer/Company and Admin first nav link to **Home**.
+            - **⚙️ Expanded Settings Hub & Dedicated Pages**:
+              - Added **My Orders** (live order history & status stepper), **Security** (2FA TOTP On/Off + Device Compliance), **Delete Account** (30-day inactivity cooldown details only), and **Log Out** directly in Settings.
+            - **🛍️ Upcycled P2P Store Cart, Bargaining & Agent Delivery**:
+              - Fixed adding the same product multiple times to Cart and persisted Cart across navigation.
+              - Added Seller Accept / Counter-Offer ("Again Say") / Reject & Buyer agreed-price checkout.
+              - Fixed Cart Checkout & Order tracking: Pickup Agents see P2P Store orders and update status (`Placed → Picked Up → Processing → Shipped → Completed`).
+            - **🎟️ Uniform Flippable Voucher Cards & Popups**:
+              - Fixed voucher card sizing; tapping image/title flips card smoothly to show description (no number/PIN).
+              - Added confirmation popup dialogs (`EcoPopupDialog`) for KYC submission, Store Orders, Bargains, and 2FA.
+            - **🚚 Separate Agent Home/Pickups/History & Improved Company/Admin Hero Cards**:
+              - Dedicated Agent Home view showing Agent Name & Vehicle Details card first; upgraded Company & Super Admin top cards and Light Mode contrast.
 
             #### 🚀 What's New in v1.0.10:
             - **🎬 Smooth Animated Navigation & Floating Dock**:

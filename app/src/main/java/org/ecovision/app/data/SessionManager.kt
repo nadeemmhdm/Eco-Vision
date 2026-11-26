@@ -75,6 +75,41 @@ object SessionManager {
     val adminTab: StateFlow<Int> = _adminTab.asStateFlow()
     fun setAdminTab(tab: Int) { _adminTab.value = tab }
 
+    private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
+    val cartItems: StateFlow<List<CartItem>> = _cartItems.asStateFlow()
+
+    fun addToCart(product: MarketplaceProduct, customPrice: Double? = null) {
+        val targetProduct = if (customPrice != null) product.copy(askingPrice = customPrice) else product
+        val current = _cartItems.value
+        val existing = current.find { it.product.id == targetProduct.id }
+        _cartItems.value = if (existing != null) {
+            current.map {
+                if (it.product.id == targetProduct.id) {
+                    it.copy(product = targetProduct, quantity = it.quantity + 1)
+                } else it
+            }
+        } else {
+            current + CartItem(targetProduct, 1)
+        }
+    }
+
+    fun updateCartQuantity(productId: String, delta: Int) {
+        _cartItems.value = _cartItems.value.mapNotNull { item ->
+            if (item.product.id == productId) {
+                val nextQty = item.quantity + delta
+                if (nextQty > 0) item.copy(quantity = nextQty) else null
+            } else item
+        }
+    }
+
+    fun removeFromCart(productId: String) {
+        _cartItems.value = _cartItems.value.filterNot { it.product.id == productId }
+    }
+
+    fun clearCart() {
+        _cartItems.value = emptyList()
+    }
+
     private val _isInitialized = MutableStateFlow<Boolean>(false)
     val isInitialized: StateFlow<Boolean> = _isInitialized.asStateFlow()
 

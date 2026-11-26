@@ -127,11 +127,76 @@ fun AdminDashboardScreen() {
         // 1. TOP 3D MASCOT HERO & LIQUID GLASS HEADER
         // ==========================================
         item {
-            Spacer(modifier = Modifier.height(4.dp))
-            AnimatedCharacterHero(
-                title = "Super Admin Hub",
-                subtitle = "Simplified Multi-Desk Governance • Real-Time Verifications"
-            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF0F172A), Color(0xFF064E3B), Color(0xFF047857))
+                        )
+                    )
+                    .padding(18.dp)
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.16f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.AdminPanelSettings, null, tint = LeafCoinGold, modifier = Modifier.size(26.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Super Admin Hub",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                                Text(
+                                    text = "KYC Governance • Payouts • App Alerts",
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                        StatusBadge(
+                            text = if (isMaintenanceMode) "MAINTENANCE" else "LIVE",
+                            color = if (isMaintenanceMode) CoralRed else EcoEmerald300,
+                            backgroundColor = Color.Black.copy(alpha = 0.35f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column {
+                            Text("PENDING KYC", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("${pendingKycProfiles.size}", color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Column {
+                            Text("TOTAL USERS", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("${profiles.size}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Column {
+                            Text("CASH QUEUE", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("$pendingCashCount", color = EcoEmerald300, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("VOUCHERS", color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+                            Text("$pendingVoucherCount", color = TechBlue, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+                }
+            }
         }
 
         // ==========================================

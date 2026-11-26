@@ -243,6 +243,7 @@ data class BargainOffer(
     @SerialName("product_id") val productId: String,
     @SerialName("buyer_id") val buyerId: String,
     @SerialName("offer_price") val offerPrice: Double,
+    @SerialName("counter_price") val counterPrice: Double? = null,
     val status: String = "pending",
     @SerialName("created_at") val createdAt: String? = null,
     val buyer: Profile? = null
@@ -352,9 +353,10 @@ data class MarketplaceOrder(
     @SerialName("delivery_fee") val deliveryFee: Double,
     @SerialName("total_amount") val totalAmount: Double,
     @SerialName("delivery_address") val deliveryAddress: String,
-    val status: String = "placed", // 'placed', 'assigned', 'picked_up', 'delivered'
-    @SerialName("assigned_agent_id") val assignedAgentId: String? = null,
+    val status: String = "placed", // 'placed', 'picked_up', 'processing', 'shipped', 'completed'
+    @SerialName("assigned_agent_id") val assignedAgentId: String? = "agent-rahul",
     @SerialName("payment_method") val paymentMethod: String = "online",
+    @SerialName("items_summary") val itemsSummary: String = "",
     @SerialName("created_at") val createdAt: String? = null
 )
 

@@ -58,6 +58,7 @@ fun ProfileScreen(
 
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var popupNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     // Section 3: 2FA TOTP State
     var totpEnabled by remember { mutableStateOf(profile?.totpEnabled ?: false) }
@@ -815,6 +816,7 @@ fun ProfileScreen(
                                         SupabaseClient.updateProfile(updated)
                                         SessionManager.updateCurrentProfile(updated)
                                         statusMessage = "KYC documents submitted for Admin verification! Proof will be auto-deleted once approved."
+                                        popupNotice = "KYC Submitted!" to "Your ID number and proof image have been uploaded and submitted for verification."
                                     }
                                     isSubmittingKyc = false
                                 }
@@ -1198,6 +1200,14 @@ fun ProfileScreen(
             containerColor = Slate850
         )
     }
+
+    if (popupNotice != null) {
+        EcoPopupDialog(
+            title = popupNotice!!.first,
+            message = popupNotice!!.second,
+            onDismiss = { popupNotice = null }
+        )
+    }
 }
 
 @Composable
@@ -1223,7 +1233,7 @@ private fun SectionHeader(number: String, title: String) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.Bold
         )
     }

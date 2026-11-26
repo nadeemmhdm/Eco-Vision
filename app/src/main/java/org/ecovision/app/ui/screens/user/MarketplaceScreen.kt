@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
 import org.ecovision.app.ui.components.EcoButton
+import org.ecovision.app.ui.components.EcoPopupDialog
 import org.ecovision.app.ui.components.GlassCard
 import org.ecovision.app.ui.components.StatusBadge
 import java.io.File
@@ -53,8 +54,13 @@ fun MarketplaceScreen(onBack: () -> Unit) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var showCartDialog by remember { mutableStateOf(false) }
 
-    // Shopping Cart State
-    val cartItems = remember { mutableStateListOf<CartItem>() }
+    // Persistent Shopping Cart State (preserved across navigation)
+    val cartItems by SessionManager.cartItems.collectAsState()
+    var bargainOffers by remember { mutableStateOf<List<BargainOffer>>(emptyList()) }
+    var showBargainsDialog by remember { mutableStateOf(false) }
+    var counterOfferTarget by remember { mutableStateOf<BargainOffer?>(null) }
+    var counterOfferInput by remember { mutableStateOf("") }
+    var popupNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
     var deliveryAddress by remember { mutableStateOf(profile?.defaultAddress ?: "Palarivattom, Kochi, Kerala") }
     var paymentMethod by remember { mutableStateOf("UPI Online") }
 
@@ -100,6 +106,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
     fun refresh() {
         scope.launch {
             products = SupabaseClient.getMarketplaceProducts()
+            bargainOffers = SupabaseClient.getBargainOffers()
         }
     }
 
@@ -130,14 +137,31 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                     Text(
                         text = "Upcycled P2P Store",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Buy & Bargain DIY Products Crafted from Waste",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Slate400
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                // Bargains Inbox Icon with Badge
+                BadgedBox(
+                    badge = {
+                        if (bargainOffers.isNotEmpty()) {
+                            Badge(containerColor = LeafCoinGold, contentColor = Slate950) {
+                                Text("${bargainOffers.size}", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                ) {
+                    IconButton(onClick = {
+                        scope.launch { bargainOffers = SupabaseClient.getBargainOffers() }
+                        showBargainsDialog = true
+                    }) {
+                        Icon(Icons.Default.Forum, contentDescription = "Bargains", tint = LeafCoinGold)
+                    }
                 }
                 // Cart Icon with Badge
                 BadgedBox(
@@ -285,12 +309,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                                     )
                                     IconButton(
                                         onClick = {
-                                            val existing = cartItems.find { it.product.id == item.id }
-                                            if (existing != null) {
-                                                existing.quantity += 1
-                                            } else {
-                                                cartItems.add(CartItem(item, 1))
-                                            }
+                                            SessionManager.addToCart(item)
                                             notificationMessage = "Added ${item.title} to Cart! 🛒"
                                         },
                                         modifier = Modifier
@@ -413,12 +432,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                         onClick = {
-                            val existing = cartItems.find { it.product.id == prod.id }
-                            if (existing != null) {
-                                existing.quantity += 1
-                            } else {
-                                cartItems.add(CartItem(prod, 1))
-                            }
+                            SessionManager.addToCart(prod)
                             selectedProductForDetails = null
                             notificationMessage = "Added ${prod.title} to Cart!"
                         }
@@ -503,26 +517,20 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                                             }
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 IconButton(
-                                                    onClick = {
-                                                        if (item.quantity > 1) {
-                                                            item.quantity -= 1
-                                                        } else {
-                                                            cartItems.remove(item)
-                                                        }
-                                                    },
+                                                    onClick = { SessionManager.updateCartQuantity(item.product.id, -1) },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
                                                     Icon(Icons.Default.Remove, null, tint = Color.White, modifier = Modifier.size(16.dp))
                                                 }
                                                 Text("${item.quantity}", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
                                                 IconButton(
-                                                    onClick = { item.quantity += 1 },
+                                                    onClick = { SessionManager.updateCartQuantity(item.product.id, 1) },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
                                                     Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
                                                 }
                                                 IconButton(
-                                                    onClick = { cartItems.remove(item) },
+                                                    onClick = { SessionManager.removeFromCart(item.product.id) },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
                                                     Icon(Icons.Default.Delete, null, tint = CoralRed, modifier = Modifier.size(16.dp))
@@ -580,20 +588,23 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                             colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                             onClick = {
                                 scope.launch {
+                                    val summary = cartItems.joinToString(", ") { "${it.quantity}x ${it.product.title}" }
                                     val order = MarketplaceOrder(
                                         id = UUID.randomUUID().toString(),
-                                        userId = profile?.id ?: "guest",
+                                        userId = profile?.id ?: "user-adhil",
                                         subtotal = cartSubtotal,
                                         deliveryFee = deliveryFee,
                                         totalAmount = cartTotal,
                                         deliveryAddress = deliveryAddress,
-                                        status = "assigned",
-                                        paymentMethod = paymentMethod
+                                        status = "placed",
+                                        assignedAgentId = "agent-rahul",
+                                        paymentMethod = paymentMethod,
+                                        itemsSummary = summary
                                     )
                                     SupabaseClient.createMarketplaceOrder(order)
-                                    cartItems.clear()
+                                    SessionManager.clearCart()
                                     showCartDialog = false
-                                    notificationMessage = "🎉 Order #${order.id.take(8)} placed! Pickup Agent assigned for doorstep delivery."
+                                    popupNotice = "Order Placed!" to "Order #${order.id.take(8).uppercase()} is confirmed! Pickup Agent Rafiq Khan will collect from the seller and deliver to you. Track it anytime in Settings → My Orders."
                                 }
                             }
                         ) {
@@ -654,17 +665,18 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                             val offerVal = bargainOfferPrice.toDoubleOrNull() ?: prod.askingPrice
                             selectedProductForBargain = null
                             scope.launch {
-                                if (profile != null) {
-                                    SupabaseClient.submitBargainOffer(
-                                        BargainOffer(
-                                            id = UUID.randomUUID().toString(),
-                                            productId = prod.id,
-                                            buyerId = profile!!.id,
-                                            offerPrice = offerVal
-                                        )
+                                val buyerId = profile?.id ?: "user-adhil"
+                                SupabaseClient.submitBargainOffer(
+                                    BargainOffer(
+                                        id = UUID.randomUUID().toString(),
+                                        productId = prod.id,
+                                        buyerId = buyerId,
+                                        offerPrice = offerVal,
+                                        status = "pending"
                                     )
-                                    notificationMessage = "Bargain offer of ₹$offerVal sent to seller!"
-                                }
+                                )
+                                bargainOffers = SupabaseClient.getBargainOffers()
+                                popupNotice = "Bargain Offer Sent!" to "Your offer of ₹${offerVal.toInt()} for '${prod.title}' has been sent to the seller. Tap the Bargains icon (💬) at the top to view Accept or Counter-Offer."
                             }
                         }
                     ) {
@@ -901,6 +913,179 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                         Text("Cancel", color = Slate400)
                     }
                 }
+            )
+        }
+
+        // ==========================================
+        // 4. BARGAINING OFFERS & COUNTER-OFFER ("AGAIN SAY") INBOX
+        // ==========================================
+        if (showBargainsDialog) {
+            AlertDialog(
+                onDismissRequest = { showBargainsDialog = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Forum, null, tint = LeafCoinGold)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Bargain Offers (${bargainOffers.size})", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    }
+                },
+                text = {
+                    if (bargainOffers.isEmpty()) {
+                        Text("No active bargain offers yet. Open any product and tap 'Bargain 💬' to propose a price.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(bargainOffers) { offer ->
+                                val prod = products.find { it.id == offer.productId }
+                                val isSeller = prod?.sellerId == (profile?.id ?: "user-adhil")
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                            Text(prod?.title ?: "Upcycled Craft", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                                            StatusBadge(
+                                                text = offer.status.uppercase(),
+                                                color = when (offer.status) {
+                                                    "accepted" -> EcoEmerald500
+                                                    "countered" -> LeafCoinGold
+                                                    "rejected" -> CoralRed
+                                                    else -> TechBlue
+                                                }
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Asking Price: ₹${prod?.askingPrice?.toInt() ?: 0} • Buyer Offer: ₹${offer.offerPrice.toInt()}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                        if (offer.counterPrice != null) {
+                                            Text("Seller Counter-Offer ('Again Say'): ₹${offer.counterPrice.toInt()}", color = LeafCoinGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        if (offer.status == "pending" || (offer.status == "countered" && isSeller)) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                                                Button(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            SupabaseClient.respondToBargainOffer(offer.id, "accepted")
+                                                            bargainOffers = SupabaseClient.getBargainOffers()
+                                                            popupNotice = "Bargain Accepted!" to "Offer of ₹${offer.offerPrice.toInt()} accepted!"
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.weight(1f),
+                                                    contentPadding = PaddingValues(vertical = 6.dp)
+                                                ) {
+                                                    Text("Accept ✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        counterOfferTarget = offer
+                                                        counterOfferInput = "${((prod?.askingPrice ?: offer.offerPrice) * 0.92).toInt()}"
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.weight(1f),
+                                                    contentPadding = PaddingValues(vertical = 6.dp)
+                                                ) {
+                                                    Text("Counter", color = LeafCoinGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            SupabaseClient.respondToBargainOffer(offer.id, "rejected")
+                                                            bargainOffers = SupabaseClient.getBargainOffers()
+                                                        }
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Close, "Reject", tint = CoralRed, modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        } else if (offer.status == "accepted" || offer.status == "countered") {
+                                            val agreedPrice = if (offer.status == "countered" && offer.counterPrice != null) offer.counterPrice else offer.offerPrice
+                                            Button(
+                                                onClick = {
+                                                    if (prod != null) {
+                                                        SessionManager.addToCart(prod, agreedPrice)
+                                                        showBargainsDialog = false
+                                                        popupNotice = "Added at Agreed Price!" to "'${prod.title}' added to your Cart at ₹${agreedPrice.toInt()}."
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text("Buy / Add to Cart at ₹${agreedPrice.toInt()} 🛒", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showBargainsDialog = false }) {
+                        Text("Close", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            )
+        }
+
+        if (counterOfferTarget != null) {
+            val target = counterOfferTarget!!
+            AlertDialog(
+                onDismissRequest = { counterOfferTarget = null },
+                containerColor = MaterialTheme.colorScheme.surface,
+                title = { Text("Seller Counter-Offer (Again Say)", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column {
+                        Text("Propose a new price to the buyer (Buyer offered ₹${target.offerPrice.toInt()}):", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = counterOfferInput,
+                            onValueChange = { counterOfferInput = it.filter { ch -> ch.isDigit() } },
+                            label = { Text("Counter Price (₹)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        colors = ButtonDefaults.buttonColors(containerColor = LeafCoinGold),
+                        onClick = {
+                            val valDouble = counterOfferInput.toDoubleOrNull() ?: target.offerPrice
+                            counterOfferTarget = null
+                            scope.launch {
+                                SupabaseClient.respondToBargainOffer(target.id, "countered", valDouble)
+                                bargainOffers = SupabaseClient.getBargainOffers()
+                                popupNotice = "Counter-Offer Sent!" to "Counter-offer of ₹${valDouble.toInt()} sent to buyer."
+                            }
+                        }
+                    ) {
+                        Text("Send Counter-Offer", color = Slate950, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { counterOfferTarget = null }) {
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            )
+        }
+
+        if (popupNotice != null) {
+            EcoPopupDialog(
+                title = popupNotice!!.first,
+                message = popupNotice!!.second,
+                onDismiss = { popupNotice = null }
             )
         }
     }
