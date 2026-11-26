@@ -615,7 +615,9 @@ fun UserHomeScreen(
                     }
                 }
 
-                if (activePickups.isEmpty()) {
+                if (isLoading) {
+                    StitchSkeletonCard(height = 140.dp)
+                } else if (activePickups.isEmpty()) {
                     if (isAgentOnDuty) {
                         // Modern Live Tracking Card (Only shown when Pickup Agent is On-Duty)
                         Image3PickupLiveCard(

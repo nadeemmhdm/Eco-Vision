@@ -363,10 +363,35 @@ fun GlassCard(
         shadowElevation = 3.dp
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(20.dp),
             content = content
         )
     }
+}
+
+@Composable
+fun StitchSkeletonCard(
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 110.dp
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "skeleton_shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(850, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "skeleton_alpha"
+    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
+    )
 }
 
 @Composable
@@ -419,14 +444,14 @@ fun EcoButton(
             .fillMaxWidth()
             .height(50.dp)
             .scale(pressScale),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(999.dp),
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = if (isSecondary) 0.dp else 3.dp,
+            defaultElevation = if (isSecondary) 0.dp else 4.dp,
             pressedElevation = 1.dp
         ),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSecondary) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-            contentColor = if (isSecondary) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+            containerColor = if (isSecondary) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+            contentColor = if (isSecondary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )

@@ -78,28 +78,22 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.12
-          name: EcoVision Release v1.0.12
+          tag_name: v1.0.13
+          name: EcoVision Release v1.0.13
           draft: false
           prerelease: false
           body: |
-            ### 🚀 EcoVision Release v1.0.12 (UI/UX, Settings, Store Orders & Dashboards Upgrade)
+            ### 🎨 EcoVision Release v1.0.13 (Google Stitch Role-Based UI/UX Redesign)
 
-            #### ✨ What's New in v1.0.12:
-            - **🧭 Snappy Bottom Nav Bar & Role Home Labels**:
-              - Fixed slow nav animation and overlapping indicator lines with a fast, crisp highlight pill.
-              - Renamed Buyer/Company and Admin first nav link to **Home**.
-            - **⚙️ Expanded Settings Hub & Dedicated Pages**:
-              - Added **My Orders** (live order history & status stepper), **Security** (2FA TOTP On/Off + Device Compliance), **Delete Account** (30-day inactivity cooldown details only), and **Log Out** directly in Settings.
-            - **🛍️ Upcycled P2P Store Cart, Bargaining & Agent Delivery**:
-              - Fixed adding the same product multiple times to Cart and persisted Cart across navigation.
-              - Added Seller Accept / Counter-Offer ("Again Say") / Reject & Buyer agreed-price checkout.
-              - Fixed Cart Checkout & Order tracking: Pickup Agents see P2P Store orders and update status (`Placed → Picked Up → Processing → Shipped → Completed`).
-            - **🎟️ Uniform Flippable Voucher Cards & Popups**:
-              - Fixed voucher card sizing; tapping image/title flips card smoothly to show description (no number/PIN).
-              - Added confirmation popup dialogs (`EcoPopupDialog`) for KYC submission, Store Orders, Bargains, and 2FA.
-            - **🚚 Separate Agent Home/Pickups/History & Improved Company/Admin Hero Cards**:
-              - Dedicated Agent Home view showing Agent Name & Vehicle Details card first; upgraded Company & Super Admin top cards and Light Mode contrast.
+            #### ✨ What's New in v1.0.13:
+            - **🎨 Complete Google Stitch Design System Integration**:
+              - Unified Modern Organic Minimalism tokens (`#059669` / `#10B981` Emerald, `#F8FAFC` Light Canvas, `#FFFFFF` 20dp cards, pill-shaped `EcoButton` CTAs, and `600.dp` centralized responsive tablet/desktop container).
+              - Designed all 10 role-based and common screens in Google Stitch (`projects/16102458572209495987`).
+            - **👤 Role-Based Profile & Settings**:
+              - Profile dynamically adapts by role (Citizen: Wallet & Referral Share; Pickup Agent: Vehicle Desk; Buyer Company: B2B GSTIN Credentials; Super Admin: Root Governance Authority).
+              - Reused common **About**, **Terms and Conditions**, **Privacy Policy**, and **FAQ** pages across all roles.
+            - **✨ Smooth Animations & Shimmer Loading**:
+              - Added `StitchSkeletonCard` shimmer loading animation, snappy bottom nav pill highlights, pill button spring tap scale, 3D flippable voucher cards, and smooth `NavHost` transitions while preserving 100% of existing business logic.
 
             #### 🚀 What's New in v1.0.10:
             - **🎬 Smooth Animated Navigation & Floating Dock**:

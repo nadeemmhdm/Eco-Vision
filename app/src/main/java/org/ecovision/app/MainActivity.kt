@@ -119,10 +119,18 @@ fun MainAppHost() {
             }
         }
     ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Splash.route,
-            modifier = Modifier.padding(paddingValues),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = androidx.compose.ui.Alignment.TopCenter
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Splash.route,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 600.dp),
             enterTransition = {
                 fadeIn(animationSpec = tween(260, easing = FastOutSlowInEasing)) +
                     slideInHorizontally(
@@ -348,6 +356,7 @@ fun MainAppHost() {
                     onNavigateToWallet = { navController.navigate(Screen.LeafCoins.route) }
                 )
             }
+        }
         }
     }
 }

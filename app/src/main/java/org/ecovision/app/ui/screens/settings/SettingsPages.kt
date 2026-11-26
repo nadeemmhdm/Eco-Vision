@@ -66,16 +66,18 @@ fun SettingsScreen(
     var showDeleteCooldownDialog by remember { mutableStateOf(false) }
     var popupNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
 
-    val menuItems = listOf(
-        SettingsMenuItem("Profile", Icons.Default.Person, EcoEmerald500, onNavigateToProfile),
-        SettingsMenuItem("My Orders", Icons.Default.ShoppingBag, TechBlue, onNavigateToMyOrders),
-        SettingsMenuItem("Security", Icons.Default.Security, LeafCoinGold, onNavigateToSecurity),
-        SettingsMenuItem("About", Icons.Default.Info, EcoEmerald400, onNavigateToAbout),
-        SettingsMenuItem("Terms and Conditions", Icons.Default.Description, Color(0xFFF59E0B), onNavigateToTerms),
-        SettingsMenuItem("Privacy Policy", Icons.Default.PrivacyTip, Color(0xFF8B5CF6), onNavigateToPrivacy),
-        SettingsMenuItem("FAQ", Icons.Default.HelpOutline, EcoEmerald500, onNavigateToFaq),
-        SettingsMenuItem("Delete Account", Icons.Default.DeleteForever, CoralRed, { showDeleteCooldownDialog = true })
-    )
+    val menuItems = buildList {
+        add(SettingsMenuItem("Profile", Icons.Default.Person, EcoEmerald500, onNavigateToProfile))
+        if ((profile?.role ?: "user") == "user") {
+            add(SettingsMenuItem("My Orders", Icons.Default.ShoppingBag, TechBlue, onNavigateToMyOrders))
+        }
+        add(SettingsMenuItem("Security", Icons.Default.Security, LeafCoinGold, onNavigateToSecurity))
+        add(SettingsMenuItem("About", Icons.Default.Info, EcoEmerald400, onNavigateToAbout))
+        add(SettingsMenuItem("Terms and Conditions", Icons.Default.Description, Color(0xFFF59E0B), onNavigateToTerms))
+        add(SettingsMenuItem("Privacy Policy", Icons.Default.PrivacyTip, Color(0xFF8B5CF6), onNavigateToPrivacy))
+        add(SettingsMenuItem("FAQ", Icons.Default.HelpOutline, EcoEmerald500, onNavigateToFaq))
+        add(SettingsMenuItem("Delete Account", Icons.Default.DeleteForever, CoralRed, { showDeleteCooldownDialog = true }))
+    }
 
     LazyColumn(
         modifier = Modifier

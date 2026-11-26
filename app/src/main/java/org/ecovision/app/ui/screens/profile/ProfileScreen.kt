@@ -233,119 +233,163 @@ fun ProfileScreen(
             }
 
             // ==========================================
-            // SECTION 02: COINS & WALLET DESK
+            // SECTION 02: ROLE-SPECIFIC PROFILE WORKSPACE
             // ==========================================
-            SectionHeader(number = "02", title = "Eco Coins & Wallet Desk")
-            GlassCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        EcoCoinIcon(size = 36.dp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
+            val userRole = profile?.role ?: "user"
+            if (userRole == "user") {
+                SectionHeader(number = "02", title = "Eco Coins & Wallet Desk")
+                GlassCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            EcoCoinIcon(size = 36.dp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "${profile?.leafCoins ?: 0} Coins",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = LeafCoinGold,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Worth ₹${String.format("%.2f", (profile?.leafCoins ?: 0) / 10.0)} UPI Cash (10 Coins = ₹1)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = onNavigateToWallet,
+                            colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                            shape = RoundedCornerShape(999.dp)
+                        ) {
+                            Text("Open Wallet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                // REFERRAL CODE SHARE (Citizen Only)
+                val myReferralCode = profile?.referralCode?.takeIf { it.isNotBlank() }
+                    ?: "ECO-${(profile?.username ?: profile?.fullName ?: "KERALA").replace(" ", "").uppercase().take(6)}"
+                GlassCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${profile?.leafCoins ?: 0} Coins",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = LeafCoinGold,
+                                text = "Invite Friends & Earn Coins",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Worth ₹${String.format("%.2f", (profile?.leafCoins ?: 0) / 10.0)} UPI Cash (10 Coins = ₹1)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Slate400,
+                                text = "Referral Code: $myReferralCode",
+                                color = LeafCoinGold,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            Text(
+                                text = "Share EcoVision app logo & invite message",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp
                             )
                         }
-                    }
-
-                    Button(
-                        onClick = onNavigateToWallet,
-                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Open Wallet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                try {
+                                    val shareDir = File(context.cacheDir, "share_images").apply { mkdirs() }
+                                    val logoFile = File(shareDir, "ecovision_logo.png")
+                                    val bmp = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
+                                    if (bmp != null) {
+                                        FileOutputStream(logoFile).use { out ->
+                                            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                        }
+                                    }
+                                    val logoUri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        logoFile
+                                    )
+                                    val shareMsg = "♻️ Join me on EcoVision — Kerala's Smart Waste Collection & Recycling App! Turn your dry recyclables into UPI Cash & Rewards.\n\nUse my Referral Code: $myReferralCode\nDownload now & start recycling!"
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(Intent.EXTRA_STREAM, logoUri)
+                                        putExtra(Intent.EXTRA_TEXT, shareMsg)
+                                        putExtra(Intent.EXTRA_SUBJECT, "Join EcoVision with my Referral Code $myReferralCode")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share EcoVision Referral"))
+                                } catch (e: Exception) {
+                                    val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            "♻️ Join EcoVision! Use my Referral Code: $myReferralCode to earn bonus Coins!"
+                                        )
+                                    }
+                                    context.startActivity(Intent.createChooser(fallbackIntent, "Share Referral Code"))
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
+                            shape = RoundedCornerShape(999.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Share", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
-            }
-
-            // ==========================================
-            // REFERRAL CODE SHARE (WITH APP LOGO + MESSAGE)
-            // ==========================================
-            val myReferralCode = profile?.referralCode?.takeIf { it.isNotBlank() }
-                ?: "ECO-${(profile?.username ?: profile?.fullName ?: "KERALA").replace(" ", "").uppercase().take(6)}"
-            GlassCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Invite Friends & Earn Coins",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Referral Code: $myReferralCode",
-                            color = LeafCoinGold,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                        Text(
-                            text = "Share EcoVision app logo & invite message",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            try {
-                                val shareDir = File(context.cacheDir, "share_images").apply { mkdirs() }
-                                val logoFile = File(shareDir, "ecovision_logo.png")
-                                val bmp = BitmapFactory.decodeResource(context.resources, R.drawable.app_logo)
-                                if (bmp != null) {
-                                    FileOutputStream(logoFile).use { out ->
-                                        bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-                                    }
-                                }
-                                val logoUri = FileProvider.getUriForFile(
-                                    context,
-                                    "${context.packageName}.fileprovider",
-                                    logoFile
-                                )
-                                val shareMsg = "♻️ Join me on EcoVision — Kerala's Smart Waste Collection & Recycling App! Turn your dry recyclables into UPI Cash & Rewards.\n\nUse my Referral Code: $myReferralCode\nDownload now & start recycling!"
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/png"
-                                    putExtra(Intent.EXTRA_STREAM, logoUri)
-                                    putExtra(Intent.EXTRA_TEXT, shareMsg)
-                                    putExtra(Intent.EXTRA_SUBJECT, "Join EcoVision with my Referral Code $myReferralCode")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share EcoVision Referral"))
-                            } catch (e: Exception) {
-                                val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_TEXT,
-                                        "♻️ Join EcoVision! Use my Referral Code: $myReferralCode to earn bonus Coins!"
-                                    )
-                                }
-                                context.startActivity(Intent.createChooser(fallbackIntent, "Share Referral Code"))
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald600),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Share", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
+            } else if (userRole == "company") {
+                SectionHeader(number = "02", title = "B2B Buyer Company Credentials")
+                GlassCard {
+                    Text(
+                        text = companyDetails?.companyName ?: profile?.fullName ?: "GreenLoop Recyclers",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "GSTIN: ${companyDetails?.gstNumber ?: "32AABCG1234F1Z5"}",
+                        color = TechBlue,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Authorized Signatory: ${companyDetails?.authorizedSignatory ?: profile?.fullName ?: "Director"}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    StatusBadge(text = "CERTIFIED B2B RECYCLER", color = EcoEmerald500)
+                }
+            } else if (userRole == "admin") {
+                SectionHeader(number = "02", title = "Super Admin Authority & Permissions")
+                GlassCard {
+                    Text(
+                        text = "Platform Root Governance",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "• Full KYC Verification & Proof Purge Authority\n• User Governance, Suspension & Cooldown Controls\n• Voucher Studio & UPI Cash Settlement Desk\n• App Alert Broadcast & Dynamic Pricing Engine",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    StatusBadge(text = "ROOT GOVERNANCE ACTIVE", color = LeafCoinGold)
                 }
             }
 
