@@ -82,6 +82,9 @@ fun MainAppHost() {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            AnimatedNoInternetBanner()
+        },
         bottomBar = {
             AnimatedVisibility(
                 visible = isNavBarVisible,

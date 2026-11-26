@@ -249,8 +249,15 @@ fun UserHomeScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
+                    val completedCount = activePickups.count { it.status == "completed" }
+                    val pendingCount = activePickups.count { it.status != "completed" }
+                    val totalTracked = completedCount + virtualBinCount + pendingCount
+                    val recycledPct = if (totalTracked > 0) ((completedCount * 100) / totalTracked).coerceIn(0, 100) else 0
+                    val binPct = if (totalTracked > 0) ((virtualBinCount * 100) / totalTracked).coerceIn(0, 100) else 0
+                    val activePct = if (totalTracked > 0) ((pendingCount * 100) / totalTracked).coerceIn(0, 100) else 0
+
                     Text(
-                        text = "122 Items",
+                        text = "$completedCount Items",
                         fontSize = 32.sp,
                         color = Color.White,
                         fontWeight = FontWeight.Black
@@ -258,14 +265,14 @@ fun UserHomeScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // 3 Circular Percentage Gauge Rings (Image 2)
+                    // 3 Circular Percentage Gauge Rings
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        CircularPercentGauge(percent = 65, label = "Recycled", ringColor = Color(0xFF22C55E))
-                        CircularPercentGauge(percent = 5, label = "Compost", ringColor = Color(0xFF06B6D4))
-                        CircularPercentGauge(percent = 2, label = "Rubbish", ringColor = Color(0xFFEF4444))
+                        CircularPercentGauge(percent = recycledPct, label = "Recycled", ringColor = Color(0xFF22C55E))
+                        CircularPercentGauge(percent = binPct, label = "In Bin", ringColor = Color(0xFF06B6D4))
+                        CircularPercentGauge(percent = activePct, label = "Active", ringColor = Color(0xFFEF4444))
                     }
                 }
             }

@@ -381,32 +381,16 @@ object SupabaseClient {
     }
 
     suspend fun getAgentAvailablePickups(zones: List<String>): List<PickupRequest> {
-        val defaultAvailable = listOf(
-            PickupRequest(
-                id = "req-101",
-                userId = "user-adhil",
-                status = "requested",
-                totalEstimatedWeight = 14.5,
-                totalEstimatedAmount = 195.0,
-                pincode = "670001",
-                pickupAddress = "Green Villa, Civil Station Rd, Kannur, Kerala"
-            ),
-            PickupRequest(
-                id = "req-102",
-                userId = "user-02",
-                status = "requested",
-                totalEstimatedWeight = 9.0,
-                totalEstimatedAmount = 120.0,
-                pincode = "670002",
-                pickupAddress = "House #42, Beach Road, Calicut, Kerala"
-            )
-        )
         val list = try {
-            httpClient.get("$REST_URL/pickup_requests") {
+            val remote = httpClient.get("$REST_URL/pickup_requests") {
                 supabaseHeaders()
                 parameter("status", "eq.requested")
                 parameter("order", "created_at.desc")
             }.body<List<PickupRequest>>()
+            try {
+                cachePrefs.edit().putString("cached_pickup_requests", cacheJson.encodeToString(remote)).apply()
+            } catch (_: Exception) {}
+            remote
         } catch (e: Exception) {
             emptyList()
         }
@@ -415,10 +399,9 @@ object SupabaseClient {
                 cacheJson.decodeFromString<List<PickupRequest>>(it)
             } ?: emptyList()
         } catch (_: Exception) { emptyList() }
-        val combined = (inMemoryPickupRequests.filter { it.status == "requested" } +
+        return (inMemoryPickupRequests.filter { it.status == "requested" } +
             cachedRequests.filter { it.status == "requested" } +
             list).distinctBy { it.id }
-        return if (combined.isNotEmpty()) combined else defaultAvailable
     }
 
     suspend fun getAgentActivePickups(agentId: String): List<PickupRequest> {
@@ -588,53 +571,22 @@ object SupabaseClient {
     }
 
     suspend fun getVerifiedGodownFeed(): List<GodownInventoryItem> {
-        val defaultLots = listOf(
-            GodownInventoryItem(
-                id = "godown-pet-450",
-                agentId = "00000000-0000-0000-0000-000000000002",
-                categoryId = "pet_plastic",
-                verifiedWeightKg = 450.0,
-                status = "godown_accepted"
-            ),
-            GodownInventoryItem(
-                id = "godown-glass-620",
-                agentId = "00000000-0000-0000-0000-000000000002",
-                categoryId = "glass",
-                verifiedWeightKg = 620.0,
-                status = "godown_accepted"
-            ),
-            GodownInventoryItem(
-                id = "godown-cardboard-850",
-                agentId = "00000000-0000-0000-0000-000000000002",
-                categoryId = "cardboard",
-                verifiedWeightKg = 850.0,
-                status = "godown_accepted"
-            ),
-            GodownInventoryItem(
-                id = "godown-aluminum-180",
-                agentId = "00000000-0000-0000-0000-000000000002",
-                categoryId = "aluminum",
-                verifiedWeightKg = 180.0,
-                status = "godown_accepted"
-            ),
-            GodownInventoryItem(
-                id = "godown-ewaste-120",
-                agentId = "00000000-0000-0000-0000-000000000002",
-                categoryId = "e_waste",
-                verifiedWeightKg = 120.0,
-                status = "godown_accepted"
-            )
-        )
-
         return try {
             val list = httpClient.get("$REST_URL/godown_inventory") {
                 supabaseHeaders()
                 parameter("status", "eq.godown_accepted")
                 parameter("order", "created_at.desc")
             }.body<List<GodownInventoryItem>>()
-            if (list.isNotEmpty()) list else defaultLots
+            try {
+                cachePrefs.edit().putString("cached_godown_feed", cacheJson.encodeToString(list)).apply()
+            } catch (_: Exception) {}
+            list
         } catch (e: Exception) {
-            defaultLots
+            try {
+                cachePrefs.getString("cached_godown_feed", null)?.let {
+                    cacheJson.decodeFromString<List<GodownInventoryItem>>(it)
+                } ?: emptyList()
+            } catch (_: Exception) { emptyList() }
         }
     }
 
@@ -685,68 +637,45 @@ object SupabaseClient {
 
     // --- Upcycled P2P Marketplace ---
     suspend fun getMarketplaceProducts(): List<MarketplaceProduct> {
-        val defaultProducts = listOf(
-            MarketplaceProduct(
-                id = "mp-01",
-                sellerId = "user-01",
-                title = "Recycled Glass Flower Vase",
-                description = "Handcrafted elegant vase made from 100% upcycled beverage glass bottles.",
-                sourceWasteMaterial = "Glass Bottles",
-                askingPrice = 249.0,
-                imageUrl = "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=400",
-                images = listOf("https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=400")
-            ),
-            MarketplaceProduct(
-                id = "mp-02",
-                sellerId = "user-02",
-                title = "Upcycled Denim Tote Bag",
-                description = "Durable eco-friendly shopping bag crafted from discarded blue jeans.",
-                sourceWasteMaterial = "Old Denim Jeans",
-                askingPrice = 399.0,
-                imageUrl = "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400",
-                images = listOf("https://images.unsplash.com/photo-1544816155-12df9643f363?w=400")
-            ),
-            MarketplaceProduct(
-                id = "mp-03",
-                sellerId = "user-03",
-                title = "Coconut Shell Desk Planter",
-                description = "Polished natural coconut shell planter ideal for succulents and indoor plants.",
-                sourceWasteMaterial = "Coconut Shells",
-                askingPrice = 180.0,
-                imageUrl = "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400",
-                images = listOf("https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400")
-            ),
-            MarketplaceProduct(
-                id = "mp-04",
-                sellerId = "user-04",
-                title = "Newspaper Weave Fruit Basket",
-                description = "Waterproof varnished sturdy basket hand-woven from recycled newspaper sheets.",
-                sourceWasteMaterial = "Discarded Newspapers",
-                askingPrice = 299.0,
-                imageUrl = "https://images.unsplash.com/photo-1590402494682-cd3fb53b1f70?w=400",
-                images = listOf("https://images.unsplash.com/photo-1590402494682-cd3fb53b1f70?w=400")
-            )
-        )
         return try {
             val list = httpClient.get("$REST_URL/marketplace_products") {
                 supabaseHeaders()
                 parameter("order", "created_at.desc")
             }.body<List<MarketplaceProduct>>()
             val combined = (inMemoryMarketplaceProducts + list).distinctBy { it.id }
-            if (combined.isNotEmpty()) combined else defaultProducts
-        } catch (e: Exception) {
-            val combined = (inMemoryMarketplaceProducts + defaultProducts).distinctBy { it.id }
+            try {
+                cachePrefs.edit().putString("cached_marketplace_products", cacheJson.encodeToString(combined)).apply()
+            } catch (_: Exception) {}
             combined
+        } catch (e: Exception) {
+            val cached = try {
+                cachePrefs.getString("cached_marketplace_products", null)?.let {
+                    cacheJson.decodeFromString<List<MarketplaceProduct>>(it)
+                } ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+            (inMemoryMarketplaceProducts + cached).distinctBy { it.id }
         }
     }
 
     suspend fun createMarketplaceProduct(product: MarketplaceProduct): Boolean {
         inMemoryMarketplaceProducts.add(0, product)
+        try {
+            cachePrefs.edit().putString("cached_marketplace_products", cacheJson.encodeToString(inMemoryMarketplaceProducts)).apply()
+        } catch (_: Exception) {}
         return try {
+            val payload = buildJsonObject {
+                put("id", product.id)
+                put("seller_id", product.sellerId)
+                put("title", product.title)
+                put("description", product.description)
+                put("source_waste_material", product.sourceWasteMaterial)
+                put("asking_price", product.askingPrice)
+                if (product.imageUrl != null) put("image_url", product.imageUrl)
+            }
             httpClient.post("$REST_URL/marketplace_products") {
                 supabaseHeaders()
                 contentType(ContentType.Application.Json)
-                setBody(product)
+                setBody(payload)
             }
             true
         } catch (e: Exception) {
@@ -1010,43 +939,8 @@ object SupabaseClient {
         }
     }
 
-    // --- In-Memory State for Instant Responsiveness & Offline Fallback ---
-    private val inMemoryRegisteredProfiles = mutableListOf<Profile>(
-        SessionManager.getFallbackDemoProfile(UserRole.USER),
-        SessionManager.getFallbackDemoProfile(UserRole.AGENT),
-        SessionManager.getFallbackDemoProfile(UserRole.COMPANY),
-        SessionManager.getFallbackDemoProfile(UserRole.ADMIN),
-        Profile(
-            id = "pending-kyc-001",
-            username = "vishnu_kerala",
-            fullName = "Vishnu Namboothiri",
-            mobile = "+919847012345",
-            email = "vishnu@gmail.com",
-            role = "agent",
-            kycStatus = "pending",
-            kycDocumentUrl = "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600",
-            kycRejectionReason = null,
-            leafCoins = 10,
-            defaultAddress = "Perinthalmanna, Malappuram",
-            district = "Malappuram",
-            pincode = "679322"
-        ),
-        Profile(
-            id = "pending-kyc-002",
-            username = "malabar_scrap",
-            fullName = "Malabar Recyclers Ltd",
-            mobile = "+919447123456",
-            email = "contact@malabarscrap.in",
-            role = "company",
-            kycStatus = "pending",
-            kycDocumentUrl = "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600",
-            kycRejectionReason = null,
-            leafCoins = 50,
-            defaultAddress = "Manjeri, Malappuram",
-            district = "Malappuram",
-            pincode = "676121"
-        )
-    )
+    // --- In-Memory & Device-Cached State for Real Database Persistence ---
+    private val inMemoryRegisteredProfiles = mutableListOf<Profile>()
     private val inMemoryAgentDetails = mutableListOf<AgentDetails>()
     private val inMemoryCompanyDetails = mutableListOf<CompanyDetails>()
     private val inMemoryBulkOrders = mutableListOf<BulkOrder>()
@@ -1113,46 +1007,13 @@ object SupabaseClient {
 
     // --- Vouchers & Wallet ---
     suspend fun getVouchers(): List<EcoVoucher> {
-        val defaultVouchers = listOf(
-            EcoVoucher(
-                id = "v-01",
-                title = "₹10 Off Organic Grocery (100 Coins)",
-                description = "Valid on all certified zero-waste and organic grocery items.",
-                imageUrl = "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400",
-                coinCost = 100,
-                discountValue = 10.0,
-                brandName = "GreenBasket",
-                category = "grocery"
-            ),
-            EcoVoucher(
-                id = "v-02",
-                title = "₹25 Off Upcycled Home Decor (250 Coins)",
-                description = "Get ₹25 instant discount on handcrafted upcycled decor.",
-                imageUrl = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=400",
-                coinCost = 250,
-                discountValue = 25.0,
-                brandName = "EarthCrafts",
-                category = "decor"
-            ),
-            EcoVoucher(
-                id = "v-03",
-                title = "₹50 Off Solar EV Charging (500 Coins)",
-                description = "Credit applied on solar fast-charging stations across Kerala.",
-                imageUrl = "https://images.unsplash.com/photo-1509391365360-2e959784a276?w=400",
-                coinCost = 500,
-                discountValue = 50.0,
-                brandName = "SolarLoop",
-                category = "energy"
-            )
-        )
         return try {
             val list = httpClient.get("$REST_URL/vouchers") {
                 supabaseHeaders()
                 parameter("is_active", "eq.true")
                 parameter("order", "coin_cost.asc")
             }.body<List<EcoVoucher>>()
-            val combined = (list + inMemoryVouchers).distinctBy { it.id }
-            val result = if (combined.isNotEmpty()) combined else (defaultVouchers + inMemoryVouchers).distinctBy { it.id }
+            val result = (list + inMemoryVouchers).distinctBy { it.id }
             try {
                 cachePrefs.edit().putString("cached_vouchers", cacheJson.encodeToString(result)).apply()
             } catch (_: Exception) {}
@@ -1161,10 +1022,9 @@ object SupabaseClient {
             val cached = try {
                 cachePrefs.getString("cached_vouchers", null)?.let {
                     cacheJson.decodeFromString<List<EcoVoucher>>(it)
-                }
-            } catch (_: Exception) { null }
-            val base = cached ?: defaultVouchers
-            (base + inMemoryVouchers).distinctBy { it.id }
+                } ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+            (cached + inMemoryVouchers).distinctBy { it.id }
         }
     }
 

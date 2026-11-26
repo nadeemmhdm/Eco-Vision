@@ -78,12 +78,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.13
-          name: EcoVision Release v1.0.13
+          tag_name: v1.0.14
+          name: EcoVision Release v1.0.14
           draft: false
           prerelease: false
           body: |
-            ### 🎨 EcoVision Release v1.0.13 (Google Stitch Role-Based UI/UX Redesign)
+            ### 🚀 EcoVision Release v1.0.14 (Production Cleanup, COD Checkout & Offline Mode)
+
+            #### ✨ What's New in v1.0.14:
+            - **🔒 Profile & Settings Cleanup**: Removed duplicate 2FA, Security/Device Compliance, Account Deletion, and Sign Out sections from Profile (kept cleanly in Settings).
+            - **🚫 Zero Demo Data**: Removed all hardcoded demo accounts, demo vouchers, demo pickups, demo godown lots, demo marketplace items, and static placeholders.
+            - **🛒 Upcycle Store COD & Offline Guard**: Enforced Cash on Delivery (COD Only) checkout and blocked database writes while offline.
+            - **📡 Offline Caching & Animated No-Internet Banner**: Cached online DB feeds for offline viewing with a global animated No-Internet banner.
+            - **🌓 Theme Mode Switcher**: Added System / Light / Dark appearance switcher in Settings.
 
             #### ✨ What's New in v1.0.13:
             - **🎨 Complete Google Stitch Design System Integration**:

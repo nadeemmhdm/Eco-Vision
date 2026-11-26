@@ -49,7 +49,6 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
 
     // Dialog states
     var showTermsModal by remember { mutableStateOf(false) }
-    var showDemoAccountsModal by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val authPrefs = remember { context.getSharedPreferences("ecovision_auth_security", android.content.Context.MODE_PRIVATE) }
@@ -286,7 +285,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             } else if (step == 2) {
                                 if (isMobilePath) {
                                     Text(
-                                        text = "A 6-digit SMS OTP has been sent to $identifier (Demo: 123456)",
+                                        text = "A 6-digit SMS OTP has been sent to $identifier",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = LeafCoinGold
                                     )
@@ -375,10 +374,6 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                     null
                                                 }
 
-                                                if (profile == null) {
-                                                    profile = SessionManager.getFallbackProfileForIdentifier(clean)
-                                                }
-
                                                 if (profile != null) {
                                                     // Reset failed login counter on success
                                                     failedLoginAttempts = 0
@@ -431,9 +426,9 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             } else if (step == 3) {
                                 Text(
                                     text = if (twoFactorType == "totp")
-                                        "Enter 6-digit code from Google Authenticator / Authy app (Demo: 123456)"
+                                        "Enter 6-digit code from Google Authenticator / Authy app"
                                     else
-                                        "Enter 6-digit verification code sent to your registered email (Demo: 123456)",
+                                        "Enter 6-digit verification code sent to your registered email",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Slate300
                                 )
@@ -464,9 +459,6 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                             } catch (e: Exception) {
                                                 null
                                             }
-                                            if (profile == null) {
-                                                profile = SessionManager.getFallbackProfileForIdentifier(clean)
-                                            }
                                             if (profile != null) {
                                                 val isValid = if (twoFactorType == "totp") {
                                                     TotpHelper.verifyTotp(profile.twoFactorSecret, otpCode)
@@ -483,7 +475,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                     SessionManager.setProfile(activeProfile, persist = true)
                                                     onAuthSuccess(activeProfile)
                                                 } else {
-                                                    errorMessage = "Invalid 2FA code. Please verify in your authenticator app (Demo: 123456)."
+                                                    errorMessage = "Invalid 2FA code. Please verify in your authenticator app."
                                                 }
                                             } else {
                                                 errorMessage = "User session expired. Please sign in again."
@@ -495,31 +487,6 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-
-                        // Discreet 1-tap test credentials modal trigger
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(
-                                onClick = { showDemoAccountsModal = true },
-                                colors = ButtonDefaults.textButtonColors(contentColor = Slate400)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Science,
-                                    contentDescription = null,
-                                    tint = LeafCoinGold,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "⚡ Need 1-Tap Test Accounts? Tap here",
-                                    fontSize = 12.sp,
-                                    color = Slate400
-                                )
-                            }
-                        }
                     }
                 } else {
                     // ==========================================
@@ -1156,115 +1123,6 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
             dismissButton = {
                 TextButton(onClick = { showTermsModal = false }) {
                     Text("Close", color = Slate400)
-                }
-            },
-            containerColor = Slate850,
-            tonalElevation = 6.dp
-        )
-    }
-
-    if (showDemoAccountsModal) {
-        AlertDialog(
-            onDismissRequest = { showDemoAccountsModal = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Science, contentDescription = null, tint = LeafCoinGold)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "1-Tap Quick Test Accounts",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "Tap any role to immediately sign in and evaluate platform features:",
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-
-                    TestAccountRow(
-                        roleIcon = "🏠",
-                        roleTitle = "Household User",
-                        username = "adhil",
-                        description = "Scan scrap, DIY upcycle, P2P bargain, Coins",
-                        badgeColor = EcoEmerald400,
-                        onClick = {
-                            showDemoAccountsModal = false
-                            scope.launch {
-                                isLoading = true
-                                SessionManager.switchDemoRole(UserRole.USER)
-                                val p = SessionManager.currentProfile.value
-                                if (p != null) onAuthSuccess(p)
-                                isLoading = false
-                            }
-                        }
-                    )
-
-                    TestAccountRow(
-                        roleIcon = "🚚",
-                        roleTitle = "Pickup Agent",
-                        username = "rahul_agent",
-                        description = "Zone pickups, spot weighing scale, godown entry",
-                        badgeColor = LeafCoinGold,
-                        onClick = {
-                            showDemoAccountsModal = false
-                            scope.launch {
-                                isLoading = true
-                                SessionManager.switchDemoRole(UserRole.AGENT)
-                                val p = SessionManager.currentProfile.value
-                                if (p != null) onAuthSuccess(p)
-                                isLoading = false
-                            }
-                        }
-                    )
-
-                    TestAccountRow(
-                        roleIcon = "🏭",
-                        roleTitle = "Buyer Company",
-                        username = "greenloop_co",
-                        description = "B2B godown stock feed, bulk lots, ESG offset",
-                        badgeColor = Color(0xFF60A5FA),
-                        onClick = {
-                            showDemoAccountsModal = false
-                            scope.launch {
-                                isLoading = true
-                                SessionManager.switchDemoRole(UserRole.COMPANY)
-                                val p = SessionManager.currentProfile.value
-                                if (p != null) onAuthSuccess(p)
-                                isLoading = false
-                            }
-                        }
-                    )
-
-                    TestAccountRow(
-                        roleIcon = "🛡️",
-                        roleTitle = "Super Admin",
-                        username = "admin",
-                        description = "Maintenance switchboard, dynamic slabs, KYC desk",
-                        badgeColor = Color(0xFFF472B6),
-                        onClick = {
-                            showDemoAccountsModal = false
-                            scope.launch {
-                                isLoading = true
-                                SessionManager.switchDemoRole(UserRole.ADMIN)
-                                val p = SessionManager.currentProfile.value
-                                if (p != null) onAuthSuccess(p)
-                                isLoading = false
-                            }
-                        }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showDemoAccountsModal = false }) {
-                    Text("Cancel", color = Slate400)
                 }
             },
             containerColor = Slate850,

@@ -331,7 +331,7 @@ fun RoleSwitcherPill() {
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (isSelected) EcoEmerald600 else Color.Transparent)
                     .clickable {
-                        scope.launch { SessionManager.switchDemoRole(role) }
+                        // Role switching is only permitted via authenticated sign-in
                     }
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
@@ -1648,6 +1648,7 @@ fun EcoPopupDialog(
     )
 }
 
+
 /**
  * 3D Style Animated Character Mascot Hero:
  * Stylized glossy 3D eco guardian mascot with dynamic floating & pulse animation.
@@ -1896,6 +1897,116 @@ fun ProofViewerDialog(
         }
     )
 }
+
+/**
+ * Animated global No-Internet Banner that slides in whenever network connectivity is lost
+ * and pulses a WifiOff icon until connectivity is restored.
+ */
+@Composable
+fun AnimatedNoInternetBanner(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var isOnline by remember {
+        mutableStateOf(org.ecovision.app.data.DeviceLocationHelper.isNetworkAvailable(context))
+    }
+
+    DisposableEffect(context) {
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                isOnline = true
+            }
+            override fun onLost(network: android.net.Network) {
+                isOnline = org.ecovision.app.data.DeviceLocationHelper.isNetworkAvailable(context)
+            }
+            override fun onCapabilitiesChanged(
+                network: android.net.Network,
+                networkCapabilities: android.net.NetworkCapabilities
+            ) {
+                isOnline = networkCapabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                    networkCapabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            }
+        }
+        try {
+            val request = android.net.NetworkRequest.Builder()
+                .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            cm?.registerNetworkCallback(request, callback)
+        } catch (_: Exception) {
+            isOnline = org.ecovision.app.data.DeviceLocationHelper.isNetworkAvailable(context)
+        }
+        onDispose {
+            try {
+                cm?.unregisterNetworkCallback(callback)
+            } catch (_: Exception) {}
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "offlinePulse")
+    val iconScale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(750, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offlineIconScale"
+    )
+    val bannerAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offlineBannerAlpha"
+    )
+
+    AnimatedVisibility(
+        visible = !isOnline,
+        enter = androidx.compose.animation.expandVertically(tween(300)) + androidx.compose.animation.fadeIn(tween(250)),
+        exit = androidx.compose.animation.shrinkVertically(tween(260)) + androidx.compose.animation.fadeOut(tween(200)),
+        modifier = modifier
+    ) {
+        Surface(
+            color = CoralRed.copy(alpha = 0.95f * bannerAlpha),
+            shadowElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WifiOff,
+                    contentDescription = "No Internet",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .scale(iconScale)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "No Internet Connection",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Offline mode active • Viewing cached data only (DB actions disabled)",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
 
 
 

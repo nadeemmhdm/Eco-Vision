@@ -62,6 +62,7 @@ fun SettingsScreen(
     onLogout: () -> Unit
 ) {
     val profile by SessionManager.currentProfile.collectAsState()
+    val themeMode by SessionManager.themeMode.collectAsState()
     val scope = rememberCoroutineScope()
     var showDeleteCooldownDialog by remember { mutableStateOf(false) }
     var popupNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -100,6 +101,101 @@ fun SettingsScreen(
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        item {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(EcoEmerald500.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = when (themeMode) {
+                                    ThemeMode.LIGHT -> Icons.Default.LightMode
+                                    ThemeMode.DARK -> Icons.Default.DarkMode
+                                    ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                },
+                                contentDescription = "Theme Mode",
+                                tint = EcoEmerald500,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Appearance Mode",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Switch between System, Light, and Dark themes",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val options = listOf(
+                            Triple(ThemeMode.SYSTEM, "System", Icons.Default.BrightnessAuto),
+                            Triple(ThemeMode.LIGHT, "Light", Icons.Default.LightMode),
+                            Triple(ThemeMode.DARK, "Dark", Icons.Default.DarkMode)
+                        )
+                        options.forEach { (mode, label, icon) ->
+                            val selected = themeMode == mode
+                            Surface(
+                                color = if (selected) EcoEmerald600 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (selected) EcoEmerald500 else MaterialTheme.colorScheme.outlineVariant
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { SessionManager.setThemeMode(mode) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = label,
+                                        tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = label,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         items(menuItems) { item ->
@@ -237,6 +333,7 @@ fun SettingsScreen(
 fun SecurityScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val profile by SessionManager.currentProfile.collectAsState()
+    val themeMode by SessionManager.themeMode.collectAsState()
     val scope = rememberCoroutineScope()
 
     var totpEnabled by remember(profile?.totpEnabled) { mutableStateOf(profile?.totpEnabled ?: false) }

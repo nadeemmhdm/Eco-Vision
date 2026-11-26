@@ -62,7 +62,7 @@ fun MarketplaceScreen(onBack: () -> Unit) {
     var counterOfferInput by remember { mutableStateOf("") }
     var popupNotice by remember { mutableStateOf<Pair<String, String>?>(null) }
     var deliveryAddress by remember { mutableStateOf(profile?.defaultAddress ?: "Palarivattom, Kochi, Kerala") }
-    var paymentMethod by remember { mutableStateOf("UPI Online") }
+    var paymentMethod by remember { mutableStateOf("Cash on Delivery (COD)") }
 
     // New Product state (Multi-image upload 1 to 4 images)
     var newTitle by remember { mutableStateOf("") }
@@ -578,7 +578,24 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Payment Mode: $paymentMethod", fontSize = 11.sp, color = TechBlue)
+                            Surface(
+                                color = EcoEmerald500.copy(alpha = 0.14f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, EcoEmerald500.copy(alpha = 0.35f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Default.LocalShipping, null, tint = EcoEmerald400, modifier = Modifier.size(16.dp))
+                                    Column {
+                                        Text("Payment Mode: Cash on Delivery (COD Only)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = EcoEmerald400)
+                                        Text("Pay ₹${cartTotal.toInt()} in cash when the agent delivers your order.", fontSize = 10.sp, color = Slate300)
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -587,28 +604,33 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                         Button(
                             colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                             onClick = {
+                                if (!DeviceLocationHelper.isNetworkAvailable(context)) {
+                                    popupNotice = "Offline Mode" to "You are currently offline. You can browse cached store products, but placing a COD order requires an internet connection."
+                                    return@Button
+                                }
+                                val uid = profile?.id ?: return@Button
                                 scope.launch {
                                     val summary = cartItems.joinToString(", ") { "${it.quantity}x ${it.product.title}" }
                                     val order = MarketplaceOrder(
                                         id = UUID.randomUUID().toString(),
-                                        userId = profile?.id ?: "user-adhil",
+                                        userId = uid,
                                         subtotal = cartSubtotal,
                                         deliveryFee = deliveryFee,
                                         totalAmount = cartTotal,
                                         deliveryAddress = deliveryAddress,
                                         status = "placed",
-                                        assignedAgentId = "agent-rahul",
+                                        assignedAgentId = null,
                                         paymentMethod = paymentMethod,
                                         itemsSummary = summary
                                     )
                                     SupabaseClient.createMarketplaceOrder(order)
                                     SessionManager.clearCart()
                                     showCartDialog = false
-                                    popupNotice = "Order Placed!" to "Order #${order.id.take(8).uppercase()} is confirmed! Pickup Agent Rafiq Khan will collect from the seller and deliver to you. Track it anytime in Settings → My Orders."
+                                    popupNotice = "COD Order Placed!" to "Order #${order.id.take(8).uppercase()} is confirmed (Cash on Delivery: ₹${cartTotal.toInt()}). An EcoVision Pickup Agent will collect from the seller and deliver to you. Track it anytime in Settings → My Orders."
                                 }
                             }
                         ) {
-                            Text("Buy Online & Dispatch Agent (₹${cartTotal.toInt()})", color = Slate950, fontWeight = FontWeight.Bold)
+                            Text("Place COD Order (₹${cartTotal.toInt()})", color = Slate950, fontWeight = FontWeight.Bold)
                         }
                     }
                 },
@@ -662,10 +684,15 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                     Button(
                         colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                         onClick = {
+                            if (!DeviceLocationHelper.isNetworkAvailable(context)) {
+                                selectedProductForBargain = null
+                                popupNotice = "Offline Mode" to "Sending bargain offers requires an internet connection."
+                                return@Button
+                            }
+                            val buyerId = profile?.id ?: return@Button
                             val offerVal = bargainOfferPrice.toDoubleOrNull() ?: prod.askingPrice
                             selectedProductForBargain = null
                             scope.launch {
-                                val buyerId = profile?.id ?: "user-adhil"
                                 SupabaseClient.submitBargainOffer(
                                     BargainOffer(
                                         id = UUID.randomUUID().toString(),
@@ -874,13 +901,12 @@ fun MarketplaceScreen(onBack: () -> Unit) {
                         colors = ButtonDefaults.buttonColors(containerColor = EcoEmerald500),
                         enabled = newImages.isNotEmpty() && newTitle.isNotBlank() && newPrice.isNotBlank(),
                         onClick = {
-                            val seller = profile ?: Profile(
-                                id = "user-adhil",
-                                username = "adhil",
-                                fullName = "Adhil Muhammed",
-                                mobile = "9876543210",
-                                role = "user"
-                            )
+                            if (!DeviceLocationHelper.isNetworkAvailable(context)) {
+                                showCreateDialog = false
+                                popupNotice = "Offline Mode" to "Listing new products requires an internet connection."
+                                return@Button
+                            }
+                            val seller = profile ?: return@Button
                             val product = MarketplaceProduct(
                                 id = UUID.randomUUID().toString(),
                                 sellerId = seller.id,
