@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.ecovision.app.data.*
 import org.ecovision.app.theme.*
@@ -125,11 +127,11 @@ fun UserHomeScreen(
     suspend fun loadUserData() {
         val current = profile ?: return
         isLoading = true
-        kotlinx.coroutines.coroutineScope {
-            val pickupsDeferred = kotlinx.coroutines.async { SupabaseClient.getUserPickups(current.id) }
-            val binDeferred = kotlinx.coroutines.async { SupabaseClient.getVirtualBin(current.id) }
-            val alertsDeferred = kotlinx.coroutines.async { SupabaseClient.getAdminNotifications(current.role) }
-            val dutyDeferred = kotlinx.coroutines.async { SupabaseClient.isAnyAgentOnDuty() }
+        coroutineScope {
+            val pickupsDeferred = async { SupabaseClient.getUserPickups(current.id) }
+            val binDeferred = async { SupabaseClient.getVirtualBin(current.id) }
+            val alertsDeferred = async { SupabaseClient.getAdminNotifications(current.role) }
+            val dutyDeferred = async { SupabaseClient.isAnyAgentOnDuty() }
 
             activePickups = pickupsDeferred.await()
             val bin = binDeferred.await()
