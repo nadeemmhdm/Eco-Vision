@@ -99,83 +99,101 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
     }
 
     Scaffold(
-        containerColor = Slate900
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .imePadding() // Ensures form lifts smoothly above soft keyboard
+                .imePadding(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Official Waste Truck App Logo
-            EcoVisionAppLogo(
-                size = 72.dp
-            )
             Spacer(modifier = Modifier.height(10.dp))
+
+            // Official Waste Truck App Logo + Stitch Header
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                shape = CircleShape,
+                modifier = Modifier.size(88.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    EcoVisionAppLogo(size = 64.dp)
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "EcoVision",
                 style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.ExtraBold
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (isSignUp) "Fast Account Registration" else "Smart Waste • Dynamic Pricing • Verified Loop",
+                text = if (isSignUp) "Create your verified circular-economy account" else "Smart Waste • Dynamic Pricing • Verified Loop",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Slate400
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Toggle Tabs: Sign In / Register
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Slate850)
-                    .padding(4.dp)
+            // Stitch Segmented Pill Toggle: Sign In / Register
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (!isSignUp) EcoEmerald600 else Color.Transparent)
-                        .clickable {
-                            isSignUp = false
-                            errorMessage = null
-                            successMessage = null
-                        }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(4.dp)
                 ) {
-                    Text(
-                        text = "Sign In",
-                        color = if (!isSignUp) Color.White else Slate400,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSignUp) EcoEmerald600 else Color.Transparent)
-                        .clickable {
-                            isSignUp = true
-                            errorMessage = null
-                            successMessage = null
-                        }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Register",
-                        color = if (isSignUp) Color.White else Slate400,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (!isSignUp) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable {
+                                isSignUp = false
+                                errorMessage = null
+                                successMessage = null
+                            }
+                            .padding(vertical = 11.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Sign In",
+                            color = if (!isSignUp) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSignUp) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable {
+                                isSignUp = true
+                                errorMessage = null
+                                successMessage = null
+                            }
+                            .padding(vertical = 11.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Register",
+                            color = if (isSignUp) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -231,7 +249,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                     else -> "Two-Factor Authentication (2FA)"
                                 },
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(14.dp))
@@ -244,8 +262,9 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         errorMessage = null
                                     },
                                     label = { Text("Username or 10-Digit Mobile") },
-                                    placeholder = { Text("e.g. adhil or 9123456789") },
-                                    leadingIcon = { Icon(Icons.Default.AccountCircle, null, tint = EcoEmerald400) },
+                                    placeholder = { Text("e.g. username or 9876543210") },
+                                    leadingIcon = { Icon(Icons.Default.AccountCircle, null, tint = MaterialTheme.colorScheme.primary) },
+                                    shape = RoundedCornerShape(14.dp),
                                     modifier = Modifier.fillMaxWidth(),
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(
@@ -262,8 +281,8 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         }
                                     ),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = EcoEmerald500,
-                                        unfocusedBorderColor = CardBorderBright
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
                                     )
                                 )
                                 Spacer(modifier = Modifier.height(18.dp))
@@ -318,16 +337,17 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         },
                                         label = { Text("Password") },
                                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = EcoEmerald400) },
+                                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary) },
                                         trailingIcon = {
                                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                                 Icon(
                                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                                     contentDescription = null,
-                                                    tint = Slate400
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         },
+                                        shape = RoundedCornerShape(14.dp),
                                         modifier = Modifier.fillMaxWidth(),
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(
@@ -335,8 +355,8 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                             imeAction = ImeAction.Done
                                         ),
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = EcoEmerald500,
-                                            unfocusedBorderColor = CardBorderBright
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
                                         )
                                     )
                                 }
@@ -349,8 +369,8 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                     OutlinedButton(
                                         onClick = { step = 1 },
                                         modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Slate300)
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                                     ) {
                                         Text("Back")
                                     }
@@ -374,7 +394,13 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                     null
                                                 }
 
-                                                if (profile != null) {
+                                                val passwordValid = if (isMobilePath) {
+                                                    otpCode.trim().length == 6
+                                                } else {
+                                                    profile != null && (profile.passwordHash.isNullOrBlank() || profile.passwordHash == password)
+                                                }
+
+                                                if (profile != null && passwordValid) {
                                                     // Reset failed login counter on success
                                                     failedLoginAttempts = 0
                                                     authPrefs.edit().putInt("failed_attempts", 0).putLong("lockout_until", 0L).apply()
@@ -385,9 +411,11 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                         SupabaseClient.cancelAccountDeletion(profile.id)
                                                     }
 
-                                                    // Collect & persist device information
+                                                    // Collect & persist device information off the main thread
                                                     val devInfo = DeviceLocationHelper.getDeviceInfo()
-                                                    val devIp = DeviceLocationHelper.getDeviceIp()
+                                                    val devIp = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                        DeviceLocationHelper.getDeviceIp()
+                                                    }
                                                     val updatedWithDevice = profile.copy(
                                                         deviceInfo = devInfo,
                                                         deviceIp = devIp,
@@ -497,7 +525,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             Text(
                                 text = "Select Account Role",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Slate300,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -505,16 +533,22 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 for (role in listOf(UserRole.USER, UserRole.AGENT, UserRole.COMPANY)) {
                                     val isSel = selectedRole == role
-                                    Box(
+                                    Surface(
+                                        color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            1.dp,
+                                            if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                                        ),
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(if (isSel) EcoEmerald600 else Slate800)
+                                            .clip(RoundedCornerShape(12.dp))
                                             .clickable { selectedRole = role }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Column(
+                                            modifier = Modifier.padding(vertical = 11.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
                                             Text(
                                                 text = when (role) {
                                                     UserRole.USER -> "🏠 Household"
@@ -524,7 +558,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                 },
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isSel) Color.White else Slate400
+                                                color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -538,7 +572,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                             Text(
                                 text = "Select District (Kerala)",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = Slate300,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
@@ -549,18 +583,19 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         onValueChange = {},
                                         readOnly = true,
                                         label = { Text("Service District (All 14 Kerala Districts) *") },
-                                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = EcoEmerald400) },
+                                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary) },
                                         trailingIcon = {
                                             IconButton(onClick = { districtExpanded = true }) {
-                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select District", tint = Color.White)
+                                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select District", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                         },
+                                        shape = RoundedCornerShape(14.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable { districtExpanded = true },
                                         colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = EcoEmerald500,
-                                            unfocusedBorderColor = CardBorderBright
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
                                         )
                                     )
                                     Box(
@@ -573,11 +608,11 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                 if (districtExpanded) {
                                     AlertDialog(
                                         onDismissRequest = { districtExpanded = false },
-                                        containerColor = Slate850,
+                                        containerColor = MaterialTheme.colorScheme.surface,
                                         title = {
                                             Text(
                                                 "Select Kerala District (${KeralaDistricts.size})",
-                                                color = Color.White,
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 16.sp
                                             )
@@ -593,7 +628,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                 KeralaDistricts.forEach { dist ->
                                                     val isSelected = dist == selectedDistrict
                                                     Surface(
-                                                        color = if (isSelected) EcoEmerald600.copy(alpha = 0.25f) else Color.Transparent,
+                                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                                                         shape = RoundedCornerShape(10.dp),
                                                         modifier = Modifier
                                                             .fillMaxWidth()
@@ -609,12 +644,12 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                                         ) {
                                                             Text(
                                                                 text = dist,
-                                                                color = if (isSelected) EcoEmerald400 else Color.White,
+                                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                                                 fontSize = 14.sp
                                                             )
                                                             if (isSelected) {
-                                                                Icon(Icons.Default.Check, null, tint = EcoEmerald400, modifier = Modifier.size(18.dp))
+                                                                Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                                             }
                                                         }
                                                     }
@@ -623,7 +658,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         },
                                         confirmButton = {
                                             TextButton(onClick = { districtExpanded = false }) {
-                                                Text("Close", color = EcoEmerald400)
+                                                Text("Close", color = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     )
@@ -877,18 +912,18 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
 
                             // Notice: KYC is collected post-registration
                             Surface(
-                                color = Slate800.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Info,
                                         contentDescription = null,
-                                        tint = EcoEmerald400,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -896,7 +931,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         text = "KYC documents (Aadhaar / Vehicle / GST) can be submitted directly in your Profile after registering.",
                                         fontSize = 11.sp,
                                         lineHeight = 15.sp,
-                                        color = Slate300
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -911,7 +946,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                 Checkbox(
                                     checked = agreedToTerms,
                                     onCheckedChange = { agreedToTerms = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = EcoEmerald500)
+                                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column(modifier = Modifier.weight(1f)) {
@@ -920,7 +955,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                             append("I agree to ")
                                             withStyle(
                                                 SpanStyle(
-                                                    color = EcoEmerald400,
+                                                    color = MaterialTheme.colorScheme.primary,
                                                     fontWeight = FontWeight.Bold,
                                                     textDecoration = TextDecoration.Underline
                                                 )
@@ -930,7 +965,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                             append(" and ")
                                             withStyle(
                                                 SpanStyle(
-                                                    color = EcoEmerald400,
+                                                    color = MaterialTheme.colorScheme.primary,
                                                     fontWeight = FontWeight.Bold,
                                                     textDecoration = TextDecoration.Underline
                                                 )
@@ -942,7 +977,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         modifier = Modifier.clickable { showTermsModal = true },
                                         fontSize = 11.sp,
                                         lineHeight = 16.sp,
-                                        color = Slate300
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -971,7 +1006,9 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
                                         val formattedMobile = "+91$clean10"
 
                                         val devInfo = DeviceLocationHelper.getDeviceInfo()
-                                        val devIp = DeviceLocationHelper.getDeviceIp()
+                                        val devIp = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                            DeviceLocationHelper.getDeviceIp()
+                                        }
 
                                         val newProfile = Profile(
                                             id = java.util.UUID.randomUUID().toString(),
@@ -1045,6 +1082,7 @@ fun AuthScreen(onAuthSuccess: (Profile) -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
         }
     }
 

@@ -34,6 +34,11 @@ object SupabaseClient {
         install(ContentNegotiation) {
             json(jsonConfig)
         }
+        install(io.ktor.client.plugins.HttpTimeout) {
+            requestTimeoutMillis = 12_000L
+            connectTimeoutMillis = 8_000L
+            socketTimeoutMillis = 12_000L
+        }
     }
 
     private fun io.ktor.client.request.HttpRequestBuilder.supabaseHeaders(preferReturn: Boolean = false) {

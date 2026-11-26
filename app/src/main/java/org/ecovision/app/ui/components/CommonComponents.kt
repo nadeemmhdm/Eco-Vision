@@ -1941,32 +1941,31 @@ fun AnimatedNoInternetBanner(modifier: Modifier = Modifier) {
         }
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "offlinePulse")
-    val iconScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(750, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offlineIconScale"
-    )
-    val bannerAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "offlineBannerAlpha"
-    )
-
     AnimatedVisibility(
         visible = !isOnline,
         enter = androidx.compose.animation.expandVertically(tween(300)) + androidx.compose.animation.fadeIn(tween(250)),
         exit = androidx.compose.animation.shrinkVertically(tween(260)) + androidx.compose.animation.fadeOut(tween(200)),
         modifier = modifier
     ) {
+        val infiniteTransition = rememberInfiniteTransition(label = "offlinePulse")
+        val iconScale by infiniteTransition.animateFloat(
+            initialValue = 0.9f,
+            targetValue = 1.15f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(750, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "offlineIconScale"
+        )
+        val bannerAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.85f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "offlineBannerAlpha"
+        )
         Surface(
             color = CoralRed.copy(alpha = 0.95f * bannerAlpha),
             shadowElevation = 6.dp,

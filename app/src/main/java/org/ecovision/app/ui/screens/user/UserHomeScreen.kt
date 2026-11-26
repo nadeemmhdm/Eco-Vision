@@ -123,22 +123,26 @@ fun UserHomeScreen(
     }
 
     suspend fun loadUserData() {
-        if (profile != null) {
-            isLoading = true
-            val pickups = SupabaseClient.getUserPickups(profile!!.id)
-            activePickups = pickups
-            val bin = SupabaseClient.getVirtualBin(profile!!.id)
+        val current = profile ?: return
+        isLoading = true
+        kotlinx.coroutines.coroutineScope {
+            val pickupsDeferred = kotlinx.coroutines.async { SupabaseClient.getUserPickups(current.id) }
+            val binDeferred = kotlinx.coroutines.async { SupabaseClient.getVirtualBin(current.id) }
+            val alertsDeferred = kotlinx.coroutines.async { SupabaseClient.getAdminNotifications(current.role) }
+            val dutyDeferred = kotlinx.coroutines.async { SupabaseClient.isAnyAgentOnDuty() }
+
+            activePickups = pickupsDeferred.await()
+            val bin = binDeferred.await()
             virtualBinCount = bin.size
             virtualBinValue = bin.sumOf { it.estimatedPrice }
-            isLoading = false
+            latestAnnouncement = alertsDeferred.await().firstOrNull()
+            isAgentOnDuty = dutyDeferred.await()
         }
+        isLoading = false
     }
 
     LaunchedEffect(profile?.id) {
         loadUserData()
-        val alerts = SupabaseClient.getAdminNotifications(profile?.role ?: "user")
-        latestAnnouncement = alerts.firstOrNull()
-        isAgentOnDuty = SupabaseClient.isAnyAgentOnDuty()
     }
 
     LazyColumn(
