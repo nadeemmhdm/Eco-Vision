@@ -78,14 +78,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/debug/*.apk
-          tag_name: v1.0.14
-          name: EcoVision Release v1.0.14
+          tag_name: v1.0.15
+          name: EcoVision Release v1.0.15
           draft: false
           prerelease: false
           body: |
-            ### 🚀 EcoVision Release v1.0.14 (Production Cleanup, COD Checkout & Offline Mode)
+            ### 🚀 EcoVision Release v1.0.15 (Dynamic Version Display & Production Fixes)
 
-            #### ✨ What's New in v1.0.14:
+            #### ✨ What's New in v1.0.15:
+            - **🏷️ Dynamic App Version**: Splash Screen and About page now dynamically read the installed APK `versionName` instead of a hardcoded `v1.0.11`.
             - **🔒 Profile & Settings Cleanup**: Removed duplicate 2FA, Security/Device Compliance, Account Deletion, and Sign Out sections from Profile (kept cleanly in Settings).
             - **🚫 Zero Demo Data**: Removed all hardcoded demo accounts, demo vouchers, demo pickups, demo godown lots, demo marketplace items, and static placeholders.
             - **🛒 Upcycle Store COD & Offline Guard**: Enforced Cash on Delivery (COD Only) checkout and blocked database writes while offline.

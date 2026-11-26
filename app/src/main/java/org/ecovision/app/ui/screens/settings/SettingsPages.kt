@@ -652,8 +652,16 @@ fun AboutScreen(onBack: () -> Unit) {
             EcoVisionAppLogo(size = 56.dp)
             Spacer(modifier = Modifier.width(14.dp))
             Column {
+                val ctx = LocalContext.current
+                val versionName = remember(ctx) {
+                    try {
+                        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "1.0.15"
+                    } catch (_: Exception) {
+                        "1.0.15"
+                    }
+                }
                 Text("EcoVision", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onBackground)
-                Text("Version 1.0.11 • Circular Economy Platform", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text("Version $versionName • Circular Economy Platform", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 

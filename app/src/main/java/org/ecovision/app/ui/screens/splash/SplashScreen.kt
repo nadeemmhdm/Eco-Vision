@@ -163,8 +163,16 @@ fun SplashScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 32.dp)
         ) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val versionName = remember(context) {
+                try {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.15"
+                } catch (_: Exception) {
+                    "1.0.15"
+                }
+            }
             Text(
-                text = "v1.0.11 • Circular Economy Platform",
+                text = "v$versionName • Circular Economy Platform",
                 style = MaterialTheme.typography.labelSmall,
                 color = Slate500
             )
