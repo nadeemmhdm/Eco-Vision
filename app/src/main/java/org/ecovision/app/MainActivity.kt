@@ -21,6 +21,7 @@ import androidx.navigation.compose.*
 import kotlinx.coroutines.launch
 import org.ecovision.app.data.SessionManager
 import org.ecovision.app.theme.*
+import org.ecovision.app.ui.components.AnimatedNoInternetBanner
 import org.ecovision.app.ui.components.EcoHeader
 import org.ecovision.app.ui.components.EcoFloatingBottomBar
 import org.ecovision.app.ui.navigation.Screen
